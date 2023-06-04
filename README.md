@@ -10,4 +10,9 @@ Calculate trajectory(pose, velocity, accerelation) between two points with const
 ## Example result
 ### Constant ACC
 case 0: not reach velocity limit
+
+![alt text](images/acc_constant_0.png)
+
 case 1: reach velocity limit
+
+![alt text](images/acc_constant_1.png)
