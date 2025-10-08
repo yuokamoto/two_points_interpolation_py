@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import two_point_interpolation as tpi
+import two_point_interpolation_constant_jerk as tpi
 
 
 ps = 5.5
@@ -30,7 +30,7 @@ jer=np.zeros((tref.size,3))
 # for i in range(0,3,1):
 i = 0
 for j in range(0,tref.size):
-	pos[j][i], vel[j][i], acc[j][i], jer[j][i] 	= interp.get_point(tref[j])
+    pos[j][i], vel[j][i], acc[j][i], jer[j][i]     = interp.get_point(tref[j])
 
 plt.subplot(4,1,1)
 plt.plot(tref,jer[:,0])

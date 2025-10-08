@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Tuple, Optional
 '''
 case==0 (not hit the vmax)
 d^2x/dt^2
@@ -10,8 +11,8 @@ d^2x/dt^2
     |             |            
     |             |            
  0--------------------------------->
-	 t0			  | t1         te
-				  |             
+     t0           | t1         te
+                  |             
  min              -----------------
 
 
@@ -25,158 +26,195 @@ d^2x/dt^2
     |       |            
     |       |            
  0--------------------------------->
-	 t0		 t1       | t2         te
-				      |             
+     t0         t1    | t2         te
+                      |             
  min                  -------------
 
 '''
-def v_integ(v0, a, dt):
-	return v0 + a * dt
-
-def p_integ(p0, v0, a, dt):
-	return p0 + v0 * dt + 0.5 * a * dt**2
+def v_integ(v0: float, a: float, dt: float) -> float:
+    """Integrate velocity from acceleration."""
+    return v0 + a * dt
 
 
-class TwoPointInterpolation(object):
-	def __init__(self):
-		self.point_setted = False
-		self.constraints_setted = False
-		self.initial_state_setted = False
-		self.trajectory_calced = False
+def p_integ(p0: float, v0: float, a: float, dt: float) -> float:
+    """Integrate position from velocity and acceleration."""
+    return p0 + v0 * dt + 0.5 * a * dt**2
 
-	def set_initial(self,t0, p0, v0=0):
-		'''set initial state'''
-		self.t0 = t0
-		self.p0 = p0
-		self.v0 = v0
-		self.initial_state_setted = True
 
-	def set_point(self, pe, ve=0):
-		'''set end state'''
-		self.pe = pe
-		self.ve = ve
-		self.point_setted = True
+class TwoPointInterpolation:
+    """Two-point interpolation with constant acceleration constraints."""
+    
+    def __init__(self):
+        self.point_setted = False
+        self.constraints_setted = False
+        self.initial_state_setted = False
+        self.trajectory_calced = False
 
-	def set_constraints(self, amax, vmax):
-		'''set constraints'''
-		self.amax = amax
-		self.vmax = vmax
-		self.constraints_setted = True
+    def set_initial(self, t0: float, p0: float, v0: float = 0) -> None:
+        '''set initial state'''
+        self.t0 = t0
+        self.p0 = p0
+        self.v0 = v0
+        self.initial_state_setted = True
 
-	def init(self, p0, pe, amax, vmax, t0=0, v0=0, ve=0):
-		'''set point and constraints'''
-		self.set_initial(t0, p0, v0)
-		self.set_point(pe, ve)
-		self.set_constraints(amax, vmax)
+    def set_point(self, pe: float, ve: float = 0) -> None:
+        '''set end state'''
+        self.pe = pe
+        self.ve = ve
+        self.point_setted = True
 
-	def calc_trajectory(self):
-		'''calc_trajectory'''
-		vmax = self.vmax
-		v0 = self.v0
-		p0 = self.p0
-		t0 = self.t0
-		ve = self.ve
-		pe = self.pe
-		dp = pe - p0
-		dv = ve - v0
+    def set_constraints(self, amax: float, vmax: float) -> None:
+        '''set constraints'''
+        if amax <= 0:
+            raise ValueError("amax must be positive")
+        if vmax <= 0:
+            raise ValueError("vmax must be positive")
+        self.amax = amax
+        self.vmax = vmax
+        self.constraints_setted = True
 
-		self.dt = []
-		self.a = []
-		self.v = [v0]
-		self.p = [p0]
+    def init(self, p0, pe, amax, vmax, t0=0, v0=0, ve=0):
+        '''set point and constraints'''
+        self.set_initial(t0, p0, v0)
+        self.set_point(pe, ve)
+        self.set_constraints(amax, vmax)
 
-		a_signed = self.a_signed = self.amax * dp/np.fabs(dp)
-		b = 2 * v0 / a_signed
-		c = (-dv * (ve + v0) * 0.5 - dp) / a_signed
-		if b*b - 4*c > 0: # not reach the v max
-			dt01 = 0.5 * (-b + np.power(b*b - 4*c, 1/2.0))
-			v1 = v_integ(v0, a_signed, dt01)
+    def calc_trajectory(self) -> float:
+        '''calc_trajectory'''
+        if not self.point_setted:
+            raise ValueError("End point not set. Call set_point() first.")
+        if not self.constraints_setted:
+            raise ValueError("Constraints not set. Call set_constraints() first.")
+        if not self.initial_state_setted:
+            raise ValueError("Initial state not set. Call set_initial() first.")
+            
+        vmax = self.vmax
+        v0 = self.v0
+        p0 = self.p0
+        t0 = self.t0
+        ve = self.ve
+        pe = self.pe
+        dp = pe - p0
+        dv = ve - v0
 
-			if np.fabs(v1) < vmax:
-				self.case = 0
-				p1 = p_integ(p0, v0, a_signed, dt01)
-				dt1e = dt01 - dv / a_signed
-				self.dt.append(dt01)
-				self.dt.append(dt1e)
-				self.a.extend([a_signed, -a_signed])
-				self.v.append(v1)
-				self.p.append(p1)
+        # Check if start and end positions are the same
+        if dp == 0:
+            if dv == 0:
+                # No movement needed, trajectory is already complete
+                self.dt = []
+                self.a = []
+                self.v = [v0]
+                self.p = [p0]
+                self.case = -1  # Special case for no movement
+                self.trajectory_calced = True
+                return 0.0
+            else:
+                raise ValueError("Cannot have different velocities at the same position (dp=0, but dv!=0)")
 
-			else:
-				self.case = 1
-				#t01
-				v1 = vmax * dp/np.fabs(dp)
-				dt01 = np.fabs((v1 - v0) / a_signed)
-				p1 = p_integ(p0, v0, a_signed, dt01)
-				self.dt.append(dt01)
-				self.a.append(a_signed)
-				self.v.append(v1)
-				self.p.append(p1)
-				#t2e
-				v2 = v1
-				dt2e = - (ve - v2) / a_signed
-				dp2e = p_integ(0, v2, -a_signed, dt2e)
-				dt12 = (pe - p1 - dp2e) / v1
-				#t12
-				p2 = pe - dp2e
-				self.dt.append(dt12)
-				self.dt.append(dt2e)
-				self.a.append(0.0)
-				self.a.append(-a_signed)
-				self.v.append(v2)
-				self.p.append(p2)
-			
-			# self.a.append(0.0)
-			# self.v.append(ve)
-			# self.p.append(pe)
+        self.dt = []
+        self.a = []
+        self.v = [v0]
+        self.p = [p0]
 
-		else: # any case?
-			print("error")
-			return -1
-			
-		print("case", self.case)
-		print("dt", self.dt)
-		print("a", self.a)
-		print("v", self.v)
-		print("p", self.p)
+        a_signed = self.a_signed = self.amax * dp/np.fabs(dp)
+        b = 2 * v0 / a_signed
+        c = (-dv * (ve + v0) * 0.5 - dp) / a_signed
+        if b*b - 4*c > 0: # not reach the v max
+            dt01 = 0.5 * (-b + np.power(b*b - 4*c, 1/2.0))
+            v1 = v_integ(v0, a_signed, dt01)
 
-		self.trajectory_calced = True
+            if np.fabs(v1) < vmax:
+                self.case = 0
+                p1 = p_integ(p0, v0, a_signed, dt01)
+                dt1e = dt01 - dv / a_signed
+                self.dt.append(dt01)
+                self.dt.append(dt1e)
+                self.a.extend([a_signed, -a_signed])
+                self.v.append(v1)
+                self.p.append(p1)
 
-		return sum(self.dt)
+            else:
+                self.case = 1
+                #t01
+                v1 = vmax * dp/np.fabs(dp)
+                dt01 = np.fabs((v1 - v0) / a_signed)
+                p1 = p_integ(p0, v0, a_signed, dt01)
+                self.dt.append(dt01)
+                self.a.append(a_signed)
+                self.v.append(v1)
+                self.p.append(p1)
+                #t2e
+                v2 = v1
+                dt2e = - (ve - v2) / a_signed
+                dp2e = p_integ(0, v2, -a_signed, dt2e)
+                dt12 = (pe - p1 - dp2e) / v1
+                #t12
+                p2 = pe - dp2e
+                self.dt.append(dt12)
+                self.dt.append(dt2e)
+                self.a.append(0.0)
+                self.a.append(-a_signed)
+                self.v.append(v2)
+                self.p.append(p2)
+            
+            # self.a.append(0.0)
+            # self.v.append(ve)
+            # self.p.append(pe)
 
-		
-	def get_point(self,t):
-		'''get pos,vel,acc depends on time t'''
+        else: # any case?
+            print("error")
+            return -1
+            
+        print("case", self.case)
+        print("dt", self.dt)
+        print("a", self.a)
+        print("v", self.v)
+        print("p", self.p)
 
-		# output
-		a = 0
-		v = 0
-		p = 0
+        self.trajectory_calced = True
 
-		tau = t-self.t0
+        return sum(self.dt)
 
-		if tau < 0:
-			a = 0.0
-			v = self.v0
-			p = self.p0
-		elif tau >= sum(self.dt):
-			a = 0.0
-			v = self.ve
-			p = self.pe
-		else:
-			a_in = v_in = p_in = 0
-			t_in = tau
-			for i in range(len(self.dt)):
-				dt = sum(self.dt[:i+1])
-				if tau <= dt:
-					t_in = tau - sum(self.dt[:i])
-					a_in = self.a[i]
-					v_in = self.v[i]
-					p_in = self.p[i]
-					break
+        
+    def get_point(self, t: float) -> Tuple[float, float, float]:
+        '''get pos,vel,acc depends on time t'''
 
-			a = a_in
-			v = v_integ(v_in, a_in, t_in)
-			p = p_integ(p_in, v_in, a_in, t_in)
+        # output
+        a = 0
+        v = 0
+        p = 0
 
-		return p,v,a
+        tau = t-self.t0
+
+        # Handle special case where no movement is needed (dp=0, dv=0)
+        if hasattr(self, 'case') and self.case == -1:
+            a = 0.0
+            v = self.v0
+            p = self.p0
+            return p, v, a
+
+        if tau < 0:
+            a = 0.0
+            v = self.v0
+            p = self.p0
+        elif tau >= sum(self.dt):
+            a = 0.0
+            v = self.ve
+            p = self.pe
+        else:
+            a_in = v_in = p_in = 0
+            t_in = tau
+            for i in range(len(self.dt)):
+                dt = sum(self.dt[:i+1])
+                if tau <= dt:
+                    t_in = tau - sum(self.dt[:i])
+                    a_in = self.a[i]
+                    v_in = self.v[i]
+                    p_in = self.p[i]
+                    break
+
+            a = a_in
+            v = v_integ(v_in, a_in, t_in)
+            p = p_integ(p_in, v_in, a_in, t_in)
+
+        return p,v,a
