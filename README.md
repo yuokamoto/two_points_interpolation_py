@@ -8,25 +8,18 @@ This library provides two trajectory planning algorithms:
 1. **Constant Acceleration**: Generates smooth trajectories with acceleration limits
 2. **Constant Jerk**: Generates even smoother trajectories with jerk (acceleration derivative) limits
 
-## Features
-
-- ✅ Position, velocity, and acceleration constraints
-- ✅ Time-optimal trajectory generation
-- ✅ Smooth motion profiles
-- ✅ Error handling and input validation
-- ✅ Type hints for better IDE support
-- ✅ Unit tests included
 
 ## Installation
 
 ```bash
 git clone https://github.com/yuokamoto/two_points_interpolation_py.git
 cd two_points_interpolation_py
+pip install -r requirements.txt
 ```
 
 ## Quick Start
 
-### Constant Acceleration Example
+### Constant Acceleration
 
 ```python
 import two_point_interpolation_constant_acc as tpi
@@ -34,74 +27,92 @@ import two_point_interpolation_constant_acc as tpi
 # Create interpolator
 interp = tpi.TwoPointInterpolation()
 
-# Set parameters: start_pos, end_pos, max_acc, max_vel, start_time, start_vel, end_vel
-interp.init(p0=0.0, pe=100.0, amax=2.0, vmax=10.0, t0=0.0, v0=0.0, ve=0.0)
+# Set start, end, and constraints
+interp.init(p0=0.0, pe=100.0, acc_max=2.0, vmax=10.0, dec_max=4.0)
 
 # Calculate trajectory
 total_time = interp.calc_trajectory()
 
-# Get position, velocity, acceleration at any time t
+# Get state at any time
 pos, vel, acc = interp.get_point(t=5.0)
 ```
 
-### Constant Jerk Example
+### Constant Jerk
 
 ```python
 import two_point_interpolation_constant_jerk as tpi
 
-# Create interpolator  
-interp = tpi.TwoPointInterpolation()
+interp = tpi.TwoPointInterpolationJerk()
+interp.init(p0=0.0, pe=100.0, amax=2.0, vmax=10.0, jmax=1.0)
 
-# Method 1: New API (compatible with constant_acc)
-interp.init(p0=0.0, pe=100.0, amax=2.0, vmax=10.0, jmax=1.0, t0=0.0)
-
-# Method 2: Original API
-# max_values = [vmax, amax, jmax]
-# interp.set(ps=0.0, pe=100.0, max=max_values)
-# interp.set_initial_time(0.0)
-
-# Calculate trajectory
 total_time = interp.calc_trajectory()
-
-# Get position, velocity, acceleration, jerk at any time t
 pos, vel, acc, jerk = interp.get_point(t=5.0)
 ```
 
-## Files
+## Examples
 
-- `two_point_interpolation_constant_acc.py`: Constant acceleration trajectory planner
-- `two_point_interpolation_constant_jerk.py`: Constant jerk trajectory planner  
-- `two_point_interpolation_test_constant_acc.py`: Demo script for constant acceleration
-- `two_point_interpolation_test_constant_jerk.py`: Demo script for constant jerk
-- `test_two_point_interpolation.py`: Unit tests for both modules
-
-## Running Tests
+Run example scripts to see visualizations:
 
 ```bash
-# Run unit tests
-python test_two_point_interpolation.py
+# Basic constant acceleration
+python3 examples/example_constant_acc.py
 
-# Run demo scripts
-python two_point_interpolation_test_constant_acc.py
-python two_point_interpolation_test_constant_jerk.py
+# Constant jerk (smoother)
+python3 examples/example_constant_jerk.py
 ```
 
-## Example result
-### Constant ACC
-#### case 0: not reach velocity limit
-constraints: 
-- p0 = 10, pe = 170.0
-- v0 = -5, ve = 1
-- amax = 1, vmax = 100
-- t0 = 10
+## Testing
 
-![alt text](images/acc_constant_0.png)
+```bash
+# Run all tests
+python3 -m pytest tests/ -v
+```
 
-#### case 1: reach velocity limit
-constraints: 
-- p0 = 50, pe = -90.0
-- v0 = -5, ve = 1
-- amax = 1, vmax = 10
-- t0 = 0
+## Project Structure
 
-![alt text](images/acc_constant_1.png)
+```
+two_points_interpolation_py/
+├── two_point_interpolation_constant_acc.py   # Acceleration-based planning
+├── two_point_interpolation_constant_jerk.py  # Jerk-based planning
+├── examples/                                  # Example scripts
+├── tests/                                     # Unit tests 
+├── images/                                    # Generated plots
+└── docs/                                      # Documentation
+    ├── CONSTANT_ACC_DERIVATION.md            # Mathematical details
+    ├── QUADRATIC_COEFFICIENTS_DERIVATION.md  # Quadratic solution derivation
+    └── CHANGELOG.md                           # Version history
+```
+
+## Example Results
+
+### Case 0: vmax not reached
+![Case 0](images/acc_constant_0.png)
+
+**Parameters**: `t0=1.0, p0=5, pe=15, acc_max=2.0, dec_max=3.0, vmax=10.0, v0=0, ve=0`
+
+Trajectory when the peak velocity is below vmax. Shows two phases: acceleration and deceleration.
+
+### Case 1: vmax reached
+![Case 1](images/acc_constant_1.png)
+
+**Parameters**: `t0=0, p0=0, pe=50, acc_max=2.0, dec_max=4.0, vmax=8.0, v0=2.0, ve=1.0`
+
+Trajectory when vmax is reached. Shows three phases: acceleration, constant velocity, and deceleration.
+
+## Documentation
+
+- **Getting Started**: This README
+- **Mathematical Derivation**: [docs/CONSTANT_ACC_DERIVATION.md](docs/CONSTANT_ACC_DERIVATION.md)
+- **Detailed Coefficient Derivation**: [docs/QUADRATIC_COEFFICIENTS_DERIVATION.md](docs/QUADRATIC_COEFFICIENTS_DERIVATION.md)
+- **Change History**: [docs/CHANGELOG.md](docs/CHANGELOG.md)
+
+## Requirements
+
+- Python 3.6+
+- NumPy
+- Matplotlib (for examples)
+
+## License
+
+See [LICENSE](LICENSE) file.
+

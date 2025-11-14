@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Matplotlib plots (if any generated during testing)
+*.png
+*.jpg
+*.pdf
+
+# C++ subdirectory (handled by its own .gitignore)
+two_points_interpolation_cpp/examples/build/*
+two_points_interpolation_cpp/examples/data*.txt
+two_points_interpolation_cpp/examples/graph*.png
+two_points_interpolation_cpp/examples/plot*.gnu
+two_points_interpolation_cpp/examples/jerk_example
+two_points_interpolation_cpp/examples/acc_example
+two_points_interpolation_cpp/test_interpolation
