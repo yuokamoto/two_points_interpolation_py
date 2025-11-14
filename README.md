@@ -91,8 +91,8 @@ two_points_interpolation_py/
 ├── two_point_interpolation_constant_acc.py   # Acceleration-based planning
 ├── two_point_interpolation_constant_jerk.py  # Jerk-based planning
 ├── examples/                                  # Example scripts
+│   └── images/                                # Generated plots
 ├── tests/                                     # Unit tests 
-├── images/                                    # Generated plots
 └── docs/                                      # Documentation
     ├── CONSTANT_ACC_DERIVATION.md            # Mathematical details
     ├── QUADRATIC_COEFFICIENTS_DERIVATION.md  # Quadratic solution derivation
@@ -102,14 +102,14 @@ two_points_interpolation_py/
 ## Example Results
 
 ### Case 0: vmax not reached
-![Case 0](images/acc_constant_0.png)
+![Case 0](examples/images/acc_constant_0.png)
 
 **Parameters**: `t0=1.0, p0=5, pe=15, acc_max=2.0, dec_max=3.0, vmax=10.0, v0=0, ve=0`
 
 Trajectory when the peak velocity is below vmax. Shows two phases: acceleration and deceleration.
 
 ### Case 1: vmax reached
-![Case 1](images/acc_constant_1.png)
+![Case 1](examples/images/acc_constant_1.png)
 
 **Parameters**: `t0=0, p0=0, pe=50, acc_max=2.0, dec_max=4.0, vmax=8.0, v0=2.0, ve=1.0`
 

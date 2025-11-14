@@ -76,7 +76,7 @@ def generate_case0_example(show=True, save=False):
     plt.tight_layout()
     
     if save:
-        images_dir = os.path.join(os.path.dirname(__file__), '..', 'images')
+        images_dir = os.path.join(os.path.dirname(__file__), 'images')
         os.makedirs(images_dir, exist_ok=True)
         output_path = os.path.join(images_dir, 'acc_constant_0.png')
         plt.savefig(output_path, dpi=150)
@@ -151,7 +151,7 @@ def generate_case1_example(show=True, save=False):
     plt.tight_layout()
     
     if save:
-        images_dir = os.path.join(os.path.dirname(__file__), '..', 'images')
+        images_dir = os.path.join(os.path.dirname(__file__), 'images')
         os.makedirs(images_dir, exist_ok=True)
         output_path = os.path.join(images_dir, 'acc_constant_1.png')
         plt.savefig(output_path, dpi=150)
