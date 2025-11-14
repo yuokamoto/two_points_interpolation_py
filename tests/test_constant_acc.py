@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import unittest
 import numpy as np
-from two_point_interpolation_constant_acc import TwoPointInterpolation, v_integ, p_integ
+from two_point_interpolation import TwoPointInterpolation, v_integ, p_integ
 
 
 class TestConstantAccInterpolation(unittest.TestCase):

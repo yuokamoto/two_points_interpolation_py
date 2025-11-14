@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "two-point-interpolation"
+version = "0.1.0"
+description = "Two-point interpolation with constant acceleration and constant jerk"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Yuki Okamoto", email = "yuokamoto1988@gmail.com"}
+]
+keywords = ["robotics", "trajectory", "motion-planning", "interpolation", "acceleration", "jerk"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "numpy>=1.19.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "matplotlib>=3.3.0",
+]
+examples = [
+    "matplotlib>=3.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yuokamoto/two_points_interpolation_py"
+Repository = "https://github.com/yuokamoto/two_points_interpolation_py"
+Documentation = "https://github.com/yuokamoto/two_points_interpolation_py#readme"
+Issues = "https://github.com/yuokamoto/two_points_interpolation_py/issues"
+
+[tool.setuptools]
+packages = ["two_point_interpolation"]
+
+[tool.setuptools.package-data]
+two_point_interpolation = ["py.typed"]

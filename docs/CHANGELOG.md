@@ -1,8 +1,19 @@
 # Changelog
 
-## [Unreleased]
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2025-11-14
 
 ### Added
+- **Pip Installable Package**: Now available as a standard Python package
+  - Package name: `two-point-interpolation`
+  - Install with: `pip install two-point-interpolation` (when published to PyPI)
+  - Development install: `pip install -e .`
+  - Modern packaging using `pyproject.toml`
+  
 - **Different Acceleration/Deceleration Support**: Independent max acceleration and deceleration values
   - Optional `dec_max` parameter (defaults to `acc_max`)
   - New API: `set_constraints(acc_max, vmax, dec_max=None)`
@@ -14,7 +25,18 @@
   - Tests include: forward/backward, symmetric/asymmetric acc/dec, non-zero v0/ve
   - Total 36+ test scenarios executed via parameterized testing
 
+- **Dual Export in Package**: Both interpolation methods available at top level
+  - `TwoPointInterpolation` (default, constant acceleration)
+  - `TwoPointInterpolationAcc` (explicit constant acceleration)
+  - `TwoPointInterpolationJerk` (constant jerk)
+
 ### Changed
+- **Package Structure**: Reorganized as proper Python package
+  - Module moved to `two_point_interpolation/` directory
+  - `constant_acc.py` and `constant_jerk.py` as submodules
+  - `__init__.py` provides convenient imports
+  - Old top-level files removed
+
 - **API Parameter Naming**: Improved clarity and consistency
   - `amax` → `acc_max` (maximum acceleration)
   - `amax_decel` → `dec_max` (maximum deceleration)
@@ -40,6 +62,7 @@
 ### Improved
 - **Documentation**:
   - Simplified README (removed redundant "asymmetric" terminology)
+  - Added installation instructions (PyPI, source, development modes)
   - Detailed mathematical derivation in separate document
   - Improved code comments explaining edge cases
   - Better error messages with actionable suggestions
@@ -65,9 +88,9 @@
   - Validates zero values
   - Clear error messages for invalid constraints
 
-## [Previous Versions]
+## [0.0.1] - Initial Development
 
-### Initial Release
+### Added
 - Two-point interpolation with constant acceleration
 - Two-point interpolation with constant jerk
 - Basic test coverage and examples

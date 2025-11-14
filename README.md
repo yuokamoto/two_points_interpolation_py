@@ -11,10 +11,26 @@ This library provides two trajectory planning algorithms:
 
 ## Installation
 
+### From PyPI (when published)
+
+```bash
+pip install two-point-interpolation
+```
+
+### From Source
+
 ```bash
 git clone https://github.com/yuokamoto/two_points_interpolation_py.git
 cd two_points_interpolation_py
-pip install -r requirements.txt
+pip install -e .
+```
+
+### For Development
+
+```bash
+git clone https://github.com/yuokamoto/two_points_interpolation_py.git
+cd two_points_interpolation_py
+pip install -e ".[dev]"
 ```
 
 ## Quick Start
@@ -22,10 +38,10 @@ pip install -r requirements.txt
 ### Constant Acceleration
 
 ```python
-import two_point_interpolation_constant_acc as tpi
+from two_point_interpolation import TwoPointInterpolation
 
 # Create interpolator
-interp = tpi.TwoPointInterpolation()
+interp = TwoPointInterpolation()
 
 # Set start, end, and constraints
 interp.init(p0=0.0, pe=100.0, acc_max=2.0, vmax=10.0, dec_max=4.0)
@@ -105,6 +121,9 @@ Trajectory when vmax is reached. Shows three phases: acceleration, constant velo
 - **Mathematical Derivation**: [docs/CONSTANT_ACC_DERIVATION.md](docs/CONSTANT_ACC_DERIVATION.md)
 - **Detailed Coefficient Derivation**: [docs/QUADRATIC_COEFFICIENTS_DERIVATION.md](docs/QUADRATIC_COEFFICIENTS_DERIVATION.md)
 - **Change History**: [docs/CHANGELOG.md](docs/CHANGELOG.md)
+
+## TODO
+- Constant jerk update to support acc_max != dec_max
 
 ## Requirements
 
