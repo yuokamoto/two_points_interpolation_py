@@ -56,14 +56,16 @@ pos, vel, acc = interp.get_point(t=5.0)
 ### Constant Jerk
 
 ```python
-import two_point_interpolation_constant_jerk as tpi
+from two_point_interpolation.constant_jerk import TwoPointInterpolationJerk
 
-interp = tpi.TwoPointInterpolationJerk()
+interp = TwoPointInterpolationJerk()
 interp.init(p0=0.0, pe=100.0, amax=2.0, vmax=10.0, jmax=1.0)
 
 total_time = interp.calc_trajectory()
 pos, vel, acc, jerk = interp.get_point(t=5.0)
 ```
+
+**Note**: Constant jerk implementation is currently under review. See TODO section below.
 
 ## Examples
 
@@ -88,15 +90,17 @@ python3 -m pytest tests/ -v
 
 ```
 two_points_interpolation_py/
-├── two_point_interpolation_constant_acc.py   # Acceleration-based planning
-├── two_point_interpolation_constant_jerk.py  # Jerk-based planning
-├── examples/                                  # Example scripts
-│   └── images/                                # Generated plots
-├── tests/                                     # Unit tests 
-└── docs/                                      # Documentation
-    ├── CONSTANT_ACC_DERIVATION.md            # Mathematical details
+├── two_point_interpolation/              # Main package
+│   ├── __init__.py                       # Package exports
+│   ├── constant_acc.py                   # Acceleration-based planning
+│   └── constant_jerk.py                  # Jerk-based planning (TODO: needs review)
+├── examples/                             # Example scripts
+│   └── images/                           # Generated plots
+├── tests/                                # Unit tests 
+└── docs/                                 # Documentation
+    ├── CONSTANT_ACC_DERIVATION.md        # Mathematical details
     ├── QUADRATIC_COEFFICIENTS_DERIVATION.md  # Quadratic solution derivation
-    └── CHANGELOG.md                           # Version history
+    └── CHANGELOG.md                      # Version history
 ```
 
 ## Example Results
@@ -123,7 +127,19 @@ Trajectory when vmax is reached. Shows three phases: acceleration, constant velo
 - **Change History**: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ## TODO
-- Constant jerk update to support acc_max != dec_max
+
+### Constant Jerk Implementation Issues
+The `constant_jerk` module requires significant improvements:
+
+1. **API Contract Violation**: The `ve` (final velocity) parameter is accepted in `init()` but never used in calculations
+2. **Debug Output**: `calc_trajectory()` prints debug information to stdout (should use logging or be removed)
+3. **Time Boundary Bug**: Case 3 condition uses `4*t1+2*2*t2+t3` instead of correct `4*t1+2*t2+t3`, causing phase transition errors
+4. **Missing Tests**: No test coverage for constant jerk functionality
+5. **Support acc_max != dec_max**: Extend to support independent acceleration/deceleration limits
+
+### Other
+- Add comprehensive test suite for `constant_jerk` module
+- Verify mathematical correctness of jerk-based trajectories
 
 ## Requirements
 
