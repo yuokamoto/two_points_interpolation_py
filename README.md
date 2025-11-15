@@ -106,14 +106,14 @@ two_points_interpolation_py/
 ## Example Results
 
 ### Case 0: vmax not reached
-![Case 0](examples/images/acc_constant_0.png)
+![Case 0](https://raw.githubusercontent.com/yuokamoto/two_points_interpolation_py/main/examples/images/acc_constant_0.png)
 
 **Parameters**: `t0=1.0, p0=5, pe=15, acc_max=2.0, dec_max=3.0, vmax=10.0, v0=0, ve=0`
 
 Trajectory when the peak velocity is below vmax. Shows two phases: acceleration and deceleration.
 
 ### Case 1: vmax reached
-![Case 1](examples/images/acc_constant_1.png)
+![Case 1](https://raw.githubusercontent.com/yuokamoto/two_points_interpolation_py/main/examples/images/acc_constant_1.png)
 
 **Parameters**: `t0=0, p0=0, pe=50, acc_max=2.0, dec_max=4.0, vmax=8.0, v0=2.0, ve=1.0`
 
