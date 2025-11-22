@@ -37,6 +37,11 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "matplotlib>=3.3.0",
+    "mypy>=1.0.0",
+    "pylint>=2.15.0",
+    "flake8>=5.0.0",
+    "autopep8>=2.0.0",
+    "pre-commit>=3.0.0",
 ]
 examples = [
     "matplotlib>=3.3.0",
@@ -53,3 +58,45 @@ packages = ["two_point_interpolation"]
 
 [tool.setuptools.package-data]
 two_point_interpolation = ["py.typed"]
+
+# Mypy configuration
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+ignore_missing_imports = true
+
+# Strict checking for constant_acc module
+[[tool.mypy.overrides]]
+module = "two_point_interpolation.constant_acc"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+
+# Ignore constant_jerk (known issues documented in TODO)
+[[tool.mypy.overrides]]
+module = "two_point_interpolation.constant_jerk"
+ignore_errors = true
+
+# Pylint configuration
+[tool.pylint.messages_control]
+disable = [
+    "C0103",  # Invalid name (allow single letter variables)
+    "R0913",  # Too many arguments
+    "R0914",  # Too many local variables
+]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.basic]
+good-names = ["i", "j", "k", "t", "p", "v", "a", "dt", "p0", "pe", "v0", "ve", "t0", "t1", "t2", "t3"]
