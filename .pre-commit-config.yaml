@@ -1,0 +1,50 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+#
+# Note: Using local hooks to avoid virtualenv issues
+
+repos:
+  - repo: local
+    hooks:
+      # Autopep8 code formatter (auto-fixes PEP 8 issues including line length)
+      - id: autopep8
+        name: autopep8 formatter
+        entry: autopep8
+        language: system
+        types: [python]
+        files: ^two_point_interpolation/
+        args: ['--in-place', '--max-line-length=100']
+
+      # Mypy type checking (strict for constant_acc)
+      - id: mypy-constant-acc
+        name: mypy (constant_acc)
+        entry: mypy
+        language: system
+        types: [python]
+        files: ^two_point_interpolation/constant_acc\.py$
+        args: ['--config-file=pyproject.toml']
+
+      # Flake8 style checking (runs after autopep8)
+      - id: flake8
+        name: flake8
+        entry: flake8
+        language: system
+        types: [python]
+        files: ^two_point_interpolation/
+        args: ['--max-line-length=100', '--extend-ignore=E203,W503,E501,D100,D107,D300,D400,D403,D202,Q000,Q001,Q002,I101,I201,F841,W291,W293,E128']
+
+      # Trailing whitespace
+      - id: trailing-whitespace
+        name: trailing whitespace
+        entry: bash -c 'for file in "$@"; do sed -i "s/[[:space:]]*$//" "$file"; done' --
+        language: system
+        types: [text]
+
+      # Check YAML files
+      - id: check-yaml
+        name: check yaml
+        entry: python -c 'import yaml, sys; yaml.safe_load(open(sys.argv[1]))'
+        language: system
+        files: \.ya?ml$

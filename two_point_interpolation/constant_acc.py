@@ -1,5 +1,5 @@
+from typing import List, Tuple, Optional
 import numpy as np
-from typing import Tuple, Optional
 '''
 Two-point interpolation with asymmetric acceleration/deceleration
 
@@ -9,12 +9,12 @@ d^2x/dt^2
     ^
     |
     |
- amax|----------            
-    |         |            
-    |         |            
+ amax|----------
+    |         |
+    |         |
  0--------------------------------->
      t0       | t1         te
-              |             
+              |
 -dmax          -----------
 
 
@@ -24,12 +24,12 @@ d^2x/dt^2
     ^
     |
     |
- amax|----            
-    |   |            
-    |   |            
+ amax|----
+    |   |
+    |   |
  0--------------------------------->
      t0   t1    | t2         te
-                |             
+                |
 -dmax            --------
 
 amax: maximum acceleration
@@ -49,12 +49,26 @@ def p_integ(p0: float, v0: float, a: float, dt: float) -> float:
 
 class TwoPointInterpolation:
     """Two-point interpolation with symmetric or asymmetric acceleration/deceleration constraints."""
-    
-    def __init__(self):
+
+    def __init__(self) -> None:
         self.point_setted = False
         self.constraints_setted = False
         self.initial_state_setted = False
         self.trajectory_calced = False
+        # Initialize attributes for type checker
+        self.t0: float = 0.0
+        self.p0: float = 0.0
+        self.v0: float = 0.0
+        self.pe: float = 0.0
+        self.ve: float = 0.0
+        self.vmax: float = 0.0
+        self.amax_accel: float = 0.0
+        self.amax_decel: float = 0.0
+        self.dt: List[float] = []
+        self.a: List[float] = []
+        self.v: List[float] = []
+        self.p: List[float] = []
+        self.case: int = 0
 
     def set_initial(self, t0: float, p0: float, v0: float = 0) -> None:
         '''set initial state'''
@@ -71,34 +85,34 @@ class TwoPointInterpolation:
 
     def set_constraints(self, acc_max: float, vmax: float, dec_max: Optional[float] = None) -> None:
         '''set constraints with symmetric or asymmetric acceleration/deceleration
-        
+
         Args:
             acc_max: maximum acceleration (positive value)
             vmax: maximum velocity (positive value)
-            dec_max: maximum deceleration (positive value). 
+            dec_max: maximum deceleration (positive value).
                      If None, defaults to acc_max
         '''
         if acc_max <= 0:
             raise ValueError("acc_max must be positive")
         if vmax <= 0:
             raise ValueError("vmax must be positive")
-        
+
         # Backward compatibility: if dec_max not specified, use symmetric acceleration
         if dec_max is None:
             dec_max = acc_max
-        
+
         if dec_max <= 0:
             raise ValueError("dec_max must be positive")
-            
+
         self.amax_accel = acc_max
         self.amax_decel = dec_max
         self.vmax = vmax
         self.constraints_setted = True
 
-    def init(self, p0: float, pe: float, acc_max: float, vmax: float, 
+    def init(self, p0: float, pe: float, acc_max: float, vmax: float,
              t0: float = 0, v0: float = 0, ve: float = 0, dec_max: Optional[float] = None) -> None:
         '''set point and constraints
-        
+
         Args:
             p0: initial position
             pe: final position
@@ -121,7 +135,7 @@ class TwoPointInterpolation:
             raise ValueError("Constraints not set. Call set_constraints() first.")
         if not self.initial_state_setted:
             raise ValueError("Initial state not set. Call set_initial() first.")
-            
+
         vmax = self.vmax
         v0 = self.v0
         p0 = self.p0
@@ -144,7 +158,7 @@ class TwoPointInterpolation:
                 return 0.0
             else:
                 raise ValueError("Changing velocity at the same position (dp=0, dv!=0) is not supported. "
-                               "This library is designed for position interpolation.")
+                                 "This library is designed for position interpolation.")
 
         self.dt = []
         self.a = []
@@ -172,7 +186,7 @@ class TwoPointInterpolation:
             sqrt_disc = np.sqrt(discriminant)
             dt01_plus = (-b_coeff + sqrt_disc) / (2 * a_coeff)
             dt01_minus = (-b_coeff - sqrt_disc) / (2 * a_coeff)
-            
+
             # Choose the positive solution
             if dt01_plus > 0 and dt01_minus > 0:
                 # Both positive: choose the smaller one (more efficient)
@@ -183,17 +197,17 @@ class TwoPointInterpolation:
                 dt01 = dt01_minus
             else:
                 raise ValueError("No positive time solution found for trajectory")
-            
+
             v1 = v_integ(v0, acc, dt01)
 
             if np.fabs(v1) < vmax:
                 # Case 0: vmax not reached
                 self.case = 0
                 p1 = p_integ(p0, v0, acc, dt01)
-                
+
                 # Deceleration duration
                 dt1e = np.fabs((v1 - ve) / dec)
-                
+
                 self.dt.append(dt01)
                 self.dt.append(dt1e)
                 self.a.extend([acc, -dec])
@@ -203,25 +217,25 @@ class TwoPointInterpolation:
             else:
                 # Case 1: vmax reached
                 self.case = 1
-                
+
                 # Phase 1: Acceleration (v0 → vmax)
                 v1 = vmax * sign
                 dt01 = np.fabs((v1 - v0) / acc)
                 p1 = p_integ(p0, v0, acc, dt01)
-                
+
                 self.dt.append(dt01)
                 self.a.append(acc)
                 self.v.append(v1)
                 self.p.append(p1)
-                
+
                 # Phase 3: Deceleration (vmax → ve)
                 v2 = v1
                 dt2e = np.fabs((v2 - ve) / dec)
                 dp2e = p_integ(0, v2, -dec, dt2e)
-                
+
                 # Phase 2: Constant velocity (vmax maintained)
                 dt12 = (pe - p1 - dp2e) / v1
-                
+
                 # Mathematical note: dt12 should always be >= 0 in theory
                 # because Case 0's solution satisfies pe exactly, and limiting v1 to vmax
                 # reduces the required distance. If dt12 < 0, it indicates:
@@ -234,9 +248,9 @@ class TwoPointInterpolation:
                         f"Distance too short ({np.fabs(dp):.3f}) for vmax ({vmax:.3f}). "
                         f"Consider reducing vmax or increasing distance."
                     )
-                
+
                 p2 = pe - dp2e
-                
+
                 self.dt.append(dt12)
                 self.dt.append(dt2e)
                 self.a.append(0.0)
@@ -246,7 +260,7 @@ class TwoPointInterpolation:
 
         else:
             raise ValueError("No valid trajectory found (discriminant < 0). "
-                           "The constraints might be too restrictive for the given end conditions.")
+                             "The constraints might be too restrictive for the given end conditions.")
 
         self.trajectory_calced = True
         return sum(self.dt)
@@ -255,9 +269,9 @@ class TwoPointInterpolation:
         '''get pos, vel, acc depends on time t'''
 
         # output
-        a = 0
-        v = 0
-        p = 0
+        a: float = 0.0
+        v: float = 0.0
+        p: float = 0.0
 
         tau = t - self.t0
 
@@ -277,8 +291,10 @@ class TwoPointInterpolation:
             v = self.ve
             p = self.pe
         else:
-            a_in = v_in = p_in = 0
-            t_in = tau
+            a_in: float = 0.0
+            v_in: float = 0.0
+            p_in: float = 0.0
+            t_in: float = tau
             for i in range(len(self.dt)):
                 dt = sum(self.dt[:i])
                 if tau <= dt + self.dt[i]:
