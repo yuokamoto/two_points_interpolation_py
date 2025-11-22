@@ -31,6 +31,21 @@ pip install -e .
 git clone https://github.com/yuokamoto/two_points_interpolation_py.git
 cd two_points_interpolation_py
 pip install -e ".[dev]"
+
+# Install pre-commit hooks for automatic code formatting and type checking
+pre-commit install
+```
+
+The pre-commit hooks will automatically run before each commit to:
+- Format code with `autopep8`
+- Check types with `mypy` (strict for `constant_acc` module)
+- Validate code style with `flake8`
+- Remove trailing whitespace
+- Validate YAML files
+
+You can also run the hooks manually on all files:
+```bash
+pre-commit run --all-files
 ```
 
 ## Quick Start
@@ -96,7 +111,7 @@ two_points_interpolation_py/
 │   └── constant_jerk.py                  # Jerk-based planning (TODO: needs review)
 ├── examples/                             # Example scripts
 │   └── images/                           # Generated plots
-├── tests/                                # Unit tests 
+├── tests/                                # Unit tests
 └── docs/                                 # Documentation
     ├── CONSTANT_ACC_DERIVATION.md        # Mathematical details
     ├── QUADRATIC_COEFFICIENTS_DERIVATION.md  # Quadratic solution derivation
