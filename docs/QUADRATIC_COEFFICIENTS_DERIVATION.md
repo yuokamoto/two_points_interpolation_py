@@ -71,7 +71,7 @@ dp = v0*t1 + 0.5*acc*t1² + (v0 + acc*t1)*t2 - 0.5*dec*t2²
 
 Substitute t2 = (v0 - ve)/dec + ratio*t1:
 ```
-dp = v0*t1 + 0.5*acc*t1² 
+dp = v0*t1 + 0.5*acc*t1²
      + (v0 + acc*t1)*[(v0 - ve)/dec + ratio*t1]
      - 0.5*dec*[(v0 - ve)/dec + ratio*t1]²
 ```

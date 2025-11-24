@@ -87,7 +87,7 @@ discriminant = b_coeff² - 4*a_coeff*c_coeff
 If discriminant > 0:
     t1 = (-b_coeff + √discriminant) / (2*a_coeff)
     v1 = v0 + acc*t1
-    
+
     If |v1| < vmax:
         Use Case 0 (two phases)
     Else:

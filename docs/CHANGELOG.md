@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Install with: `pip install two-point-interpolation` (when published to PyPI)
   - Development install: `pip install -e .`
   - Modern packaging using `pyproject.toml`
-  
+
 - **Different Acceleration/Deceleration Support**: Independent max acceleration and deceleration values
   - Optional `dec_max` parameter (defaults to `acc_max`)
   - New API: `set_constraints(acc_max, vmax, dec_max=None)`
@@ -102,5 +102,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Two-point interpolation with constant acceleration
 - Two-point interpolation with constant jerk
 - Basic test coverage and examples
-
-

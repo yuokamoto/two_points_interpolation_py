@@ -48,7 +48,8 @@ def p_integ(p0: float, v0: float, a: float, dt: float) -> float:
 
 
 class TwoPointInterpolation:
-    """Two-point interpolation with symmetric or asymmetric acceleration/deceleration constraints."""
+    """Two-point interpolation with symmetric or asymmetric
+    acceleration/deceleration constraints."""
 
     def __init__(self) -> None:
         self.point_setted = False
@@ -157,8 +158,9 @@ class TwoPointInterpolation:
                 self.trajectory_calced = True
                 return 0.0
             else:
-                raise ValueError("Changing velocity at the same position (dp=0, dv!=0) is not supported. "
-                                 "This library is designed for position interpolation.")
+                raise ValueError(
+                    "Changing velocity at the same position (dp=0, dv!=0) is not supported. "
+                    "This library is designed for position interpolation.")
 
         self.dt = []
         self.a = []
@@ -259,8 +261,10 @@ class TwoPointInterpolation:
                 self.p.append(p2)
 
         else:
-            raise ValueError("No valid trajectory found (discriminant < 0). "
-                             "The constraints might be too restrictive for the given end conditions.")
+            raise ValueError(
+                "No valid trajectory found (discriminant < 0). "
+                "The constraints might be too restrictive for the given end conditions."
+            )
 
         self.trajectory_calced = True
         return sum(self.dt)

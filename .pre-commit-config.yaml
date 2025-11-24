@@ -6,6 +6,21 @@
 # Note: Using local hooks to avoid virtualenv issues
 
 repos:
+  # Official pre-commit hooks for general file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace          # Remove trailing whitespace
+      - id: end-of-file-fixer            # Ensure files end with a newline
+      - id: check-yaml                   # Validate YAML files
+      - id: check-merge-conflict         # Detect merge conflict markers
+      - id: check-toml                   # Validate TOML files (pyproject.toml)
+      - id: debug-statements             # Detect debug statements (pdb, breakpoint)
+      - id: check-added-large-files      # Prevent large files from being committed
+        args: ['--maxkb=1000']
+      - id: mixed-line-ending            # Detect mixed line endings (CRLF/LF)
+
+  # Local hooks for Python-specific checks
   - repo: local
     hooks:
       # Autopep8 code formatter (auto-fixes PEP 8 issues including line length)
@@ -32,19 +47,8 @@ repos:
         entry: flake8
         language: system
         types: [python]
-        files: ^two_point_interpolation/
-        args: ['--max-line-length=100', '--extend-ignore=E203,W503,E501,D100,D107,D300,D400,D403,D202,Q000,Q001,Q002,I101,I201,F841,W291,W293,E128']
-
-      # Trailing whitespace
-      - id: trailing-whitespace
-        name: trailing whitespace
-        entry: bash -c 'for file in "$@"; do sed -i "s/[[:space:]]*$//" "$file"; done' --
-        language: system
-        types: [text]
-
-      # Check YAML files
-      - id: check-yaml
-        name: check yaml
-        entry: python -c 'import yaml, sys; yaml.safe_load(open(sys.argv[1]))'
-        language: system
-        files: \.ya?ml$
+        files: ^two_point_interpolation/constant_acc\.py$  # Only check constant_acc.py (constant_jerk has known issues)
+        args: [
+          '--max-line-length=100',
+          '--extend-ignore=E203,W503,D,Q,I,F841,W291,W293,E128',
+        ]

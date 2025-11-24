@@ -167,4 +167,3 @@ The `constant_jerk` module requires significant improvements:
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 This software is provided "AS IS" without warranty of any kind.
-
