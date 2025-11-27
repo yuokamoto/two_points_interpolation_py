@@ -130,7 +130,10 @@ class TwoPointInterpolation:
         decel_distance = (v0**2 - ve**2) / (2 * abs(dec))
 
         # Check if moving toward target (sign * v0 > 0 means velocity and direction align)
-        if sign * v0 > 0 and abs(decel_distance - abs(dp)) < abs(dp) * DECEL_DISTANCE_TOLERANCE:
+        is_moving_toward_target = sign * v0 > 0
+
+        if (is_moving_toward_target and
+                abs(decel_distance - abs(dp)) < abs(dp) * DECEL_DISTANCE_TOLERANCE):
             # Within tolerance: deceleration distance is very close to available distance
             if context == 'discriminant':
                 msg_prefix = "No valid trajectory found"
@@ -143,17 +146,19 @@ class TwoPointInterpolation:
                 f"{decel_distance:.4f} distance to reach target velocity {abs(ve):.4f}, "
                 f"nearly equal to available distance {abs(dp):.4f}. "
                 f"This leaves no room for trajectory planning. "
-                f"This typically occurs when the same goal is resent during motion. "
+                f"This typically occurs when the same goal is sent again during motion. "
                 f"Consider checking if the goal has changed before recalculating trajectory."
             )
-        elif sign * v0 > 0 and decel_distance > abs(dp):
+        elif is_moving_toward_target and decel_distance > abs(dp):
             # Deceleration distance exceeds available distance (more than tolerance)
+            # Guard against division by zero (though dp==0 is checked earlier in calc_trajectory)
+            percentage = (abs(decel_distance - abs(dp))/abs(dp)*100) if abs(dp) > 1e-10 else 0.0
             raise ValueError(
                 f"Insufficient distance to decelerate: "
                 f"current velocity {abs(v0):.4f} requires {decel_distance:.4f} distance "
                 f"to reach target velocity {abs(ve):.4f}, but only {abs(dp):.4f} available. "
                 f"Shortage: {decel_distance - abs(dp):.4f} "
-                f"({abs(decel_distance - abs(dp))/abs(dp)*100:.2f}%). "
+                f"({percentage:.2f}%). "
                 f"Consider reducing initial velocity or increasing distance."
             )
         else:
@@ -246,6 +251,8 @@ class TwoPointInterpolation:
         discriminant = b_coeff**2 - 4 * a_coeff * c_coeff
 
         # Check for invalid trajectory before attempting to solve
+        # Early-exit pattern: Check discriminant <= 0 first for better error reporting
+        # (original logic had discriminant > 0, but inverting provides clearer error messages)
         if discriminant <= 0:
             # Discriminant <= 0: no valid solution
             self._raise_deceleration_error(v0, ve, dp, dec, sign, 'discriminant')
