@@ -294,5 +294,81 @@ class TestIntegrationFunctions(unittest.TestCase):
         self.assertEqual(expected, result)
 
 
+class TestDecelerationErrorConditions(unittest.TestCase):
+    """Test error conditions in deceleration distance checking."""
+
+    def test_same_goal_resent_error(self):
+        """Test error when same goal is sent again during motion (within 2% tolerance)."""
+        tpi = TwoPointInterpolation()
+        # Create a scenario where decel_distance ≈ dp (within 2%)
+        # From the conversation: v0=0.5492 m/s, dp=0.1508 m requires ~0.15081 m to decel
+        tpi.init(p0=0.6392, pe=0.79, acc_max=1.0, vmax=1.0,
+                 dec_max=1.0, v0=0.5492, ve=0.0)
+
+        with self.assertRaises(ValueError) as context:
+            tpi.calc_trajectory()
+
+        error_msg = str(context.exception)
+        # Check that the error message mentions "same goal is sent again"
+        self.assertIn("same goal is sent again", error_msg)
+        self.assertIn("nearly equal to available distance", error_msg)
+
+    def test_insufficient_distance_error(self):
+        """Test error when distance is clearly insufficient (>2% shortage)."""
+        tpi = TwoPointInterpolation()
+        # Create a scenario where decel_distance >> dp (more than 2%)
+        # High initial velocity with short distance
+        tpi.init(p0=0.0, pe=0.5, acc_max=1.0, vmax=2.0,
+                 dec_max=1.0, v0=2.0, ve=0.0)
+
+        with self.assertRaises(ValueError) as context:
+            tpi.calc_trajectory()
+
+        error_msg = str(context.exception)
+        # Check that the error message mentions insufficient distance
+        self.assertIn("Insufficient distance to decelerate", error_msg)
+        self.assertIn("Shortage:", error_msg)
+        self.assertIn("%", error_msg)  # Should include percentage
+
+    def test_general_constraint_error_discriminant(self):
+        """Test general constraint error when discriminant <= 0."""
+        tpi = TwoPointInterpolation()
+        # Create a scenario that causes discriminant <= 0
+        # Start above vmax and need to end above vmax, but distance is too short
+        # This creates an impossible trajectory
+        tpi.init(p0=0.0, pe=0.5, acc_max=1.0, vmax=0.5,
+                 dec_max=1.0, v0=2.0, ve=2.0)
+
+        with self.assertRaises(ValueError) as context:
+            tpi.calc_trajectory()
+
+        error_msg = str(context.exception)
+        # This should trigger an error about trajectory constraints
+        self.assertTrue(
+            "No valid trajectory found" in error_msg or
+            "Insufficient distance" in error_msg or
+            "constraints" in error_msg.lower()
+        )
+
+    def test_general_constraint_error_no_positive_solution(self):
+        """Test error message quality when trajectory calculation fails."""
+        tpi = TwoPointInterpolation()
+        # Create a very challenging scenario
+        # High speed with tight constraints
+        tpi.init(p0=0.0, pe=0.1, acc_max=0.1, vmax=0.5,
+                 dec_max=0.1, v0=1.5, ve=0.0)
+
+        with self.assertRaises(ValueError) as context:
+            tpi.calc_trajectory()
+
+        error_msg = str(context.exception)
+        # Should get some kind of error about insufficient distance or constraints
+        self.assertTrue(
+            "Insufficient distance" in error_msg or
+            "No valid trajectory" in error_msg or
+            "No positive time solution" in error_msg
+        )
+
+
 if __name__ == '__main__':
     unittest.main()

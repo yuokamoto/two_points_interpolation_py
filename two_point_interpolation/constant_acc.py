@@ -36,6 +36,9 @@ amax: maximum acceleration
 dmax: maximum deceleration (absolute value)
 '''
 
+# Tolerance threshold for deceleration distance comparison (2%)
+DECEL_DISTANCE_TOLERANCE = 0.02
+
 
 def v_integ(v0: float, a: float, dt: float) -> float:
     """Integrate velocity from acceleration."""
@@ -110,6 +113,71 @@ class TwoPointInterpolation:
         self.vmax = vmax
         self.constraints_setted = True
 
+    def _raise_deceleration_error(self, v0: float, ve: float, dp: float,
+                                  dec: float, sign: float, context: str) -> None:
+        """Check deceleration feasibility and raise appropriate error.
+
+        Args:
+            v0: initial velocity
+            ve: final velocity
+            dp: position displacement
+            dec: deceleration value (with sign)
+            sign: direction sign
+            context: error context ('discriminant' or 'no_positive_solution')
+        """
+        # Calculate minimum distance required to decelerate from v0 to ve
+        # Using kinematic equation: d = (v0² - ve²) / (2 * dec)
+        decel_distance = (v0**2 - ve**2) / (2 * abs(dec))
+
+        # Check if moving toward target (sign * v0 > 0 means velocity and direction align)
+        is_moving_toward_target = sign * v0 > 0
+
+        if (is_moving_toward_target and
+                abs(decel_distance - abs(dp)) < abs(dp) * DECEL_DISTANCE_TOLERANCE):
+            # Within tolerance: deceleration distance is very close to available distance
+            if context == 'discriminant':
+                msg_prefix = "No valid trajectory found"
+            else:  # no_positive_solution
+                msg_prefix = "Insufficient distance for trajectory planning"
+
+            raise ValueError(
+                f"{msg_prefix}: "
+                f"current velocity {abs(v0):.4f} requires approximately "
+                f"{decel_distance:.4f} distance to reach target velocity {abs(ve):.4f}, "
+                f"nearly equal to available distance {abs(dp):.4f}. "
+                f"This leaves no room for trajectory planning. "
+                f"This typically occurs when the same goal is sent again during motion. "
+                f"Consider checking if the goal has changed before recalculating trajectory."
+            )
+        elif is_moving_toward_target and decel_distance > abs(dp):
+            # Deceleration distance exceeds available distance (more than tolerance)
+            # Guard against division by zero (though dp==0 is checked earlier in calc_trajectory)
+            percentage = (abs(decel_distance - abs(dp))/abs(dp)*100) if abs(dp) > 1e-10 else 0.0
+            raise ValueError(
+                f"Insufficient distance to decelerate: "
+                f"current velocity {abs(v0):.4f} requires {decel_distance:.4f} distance "
+                f"to reach target velocity {abs(ve):.4f}, but only {abs(dp):.4f} available. "
+                f"Shortage: {decel_distance - abs(dp):.4f} "
+                f"({percentage:.2f}%). "
+                f"Consider reducing initial velocity or increasing distance."
+            )
+        else:
+            # General case
+            if context == 'discriminant':
+                raise ValueError(
+                    f"No valid trajectory found (discriminant <= 0). "
+                    f"The constraints might be too restrictive for the given end conditions. "
+                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
+                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}, "
+                    f"vmax: {self.vmax:.4f}"
+                )
+            else:  # no_positive_solution
+                raise ValueError(
+                    f"No positive time solution found for trajectory. "
+                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
+                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}"
+                )
+
     def init(self, p0: float, pe: float, acc_max: float, vmax: float,
              t0: float = 0, v0: float = 0, ve: float = 0, dec_max: Optional[float] = None) -> None:
         '''set point and constraints
@@ -182,89 +250,91 @@ class TwoPointInterpolation:
         # Calculate discriminant
         discriminant = b_coeff**2 - 4 * a_coeff * c_coeff
 
-        if discriminant > 0:  # Valid solution exists
-            # Solve for t1 (acceleration duration)
-            # Quadratic equation has two solutions, choose the positive one
-            sqrt_disc = np.sqrt(discriminant)
-            dt01_plus = (-b_coeff + sqrt_disc) / (2 * a_coeff)
-            dt01_minus = (-b_coeff - sqrt_disc) / (2 * a_coeff)
+        # Check for invalid trajectory before attempting to solve
+        # Early-exit pattern: Check discriminant <= 0 first for better error reporting
+        # (original logic had discriminant > 0, but inverting provides clearer error messages)
+        if discriminant <= 0:
+            # Discriminant <= 0: no valid solution
+            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'discriminant')
 
-            # Choose the positive solution
-            if dt01_plus > 0 and dt01_minus > 0:
-                # Both positive: choose the smaller one (more efficient)
-                dt01 = min(dt01_plus, dt01_minus)
-            elif dt01_plus > 0:
-                dt01 = dt01_plus
-            elif dt01_minus > 0:
-                dt01 = dt01_minus
-            else:
-                raise ValueError("No positive time solution found for trajectory")
+        # Valid solution exists (discriminant > 0)
+        # Solve for t1 (acceleration duration)
+        # Quadratic equation has two solutions, choose the positive one
+        sqrt_disc = np.sqrt(discriminant)
+        dt01_plus = (-b_coeff + sqrt_disc) / (2 * a_coeff)
+        dt01_minus = (-b_coeff - sqrt_disc) / (2 * a_coeff)
 
-            v1 = v_integ(v0, acc, dt01)
+        # Choose the positive solution
+        if dt01_plus > 0 and dt01_minus > 0:
+            # Both positive: choose the smaller one (more efficient)
+            dt01 = min(dt01_plus, dt01_minus)
+        elif dt01_plus > 0:
+            dt01 = dt01_plus
+        elif dt01_minus > 0:
+            dt01 = dt01_minus
+        else:
+            # No positive solution: check if this is due to insufficient deceleration distance
+            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'no_positive_solution')
 
-            if np.fabs(v1) < vmax:
-                # Case 0: vmax not reached
-                self.case = 0
-                p1 = p_integ(p0, v0, acc, dt01)
+        v1 = v_integ(v0, acc, dt01)
 
-                # Deceleration duration
-                dt1e = np.fabs((v1 - ve) / dec)
+        if np.fabs(v1) < vmax:
+            # Case 0: vmax not reached
+            self.case = 0
+            p1 = p_integ(p0, v0, acc, dt01)
 
-                self.dt.append(dt01)
-                self.dt.append(dt1e)
-                self.a.extend([acc, -dec])
-                self.v.append(v1)
-                self.p.append(p1)
+            # Deceleration duration
+            dt1e = np.fabs((v1 - ve) / dec)
 
-            else:
-                # Case 1: vmax reached
-                self.case = 1
-
-                # Phase 1: Acceleration (v0 → vmax)
-                v1 = vmax * sign
-                dt01 = np.fabs((v1 - v0) / acc)
-                p1 = p_integ(p0, v0, acc, dt01)
-
-                self.dt.append(dt01)
-                self.a.append(acc)
-                self.v.append(v1)
-                self.p.append(p1)
-
-                # Phase 3: Deceleration (vmax → ve)
-                v2 = v1
-                dt2e = np.fabs((v2 - ve) / dec)
-                dp2e = p_integ(0, v2, -dec, dt2e)
-
-                # Phase 2: Constant velocity (vmax maintained)
-                dt12 = (pe - p1 - dp2e) / v1
-
-                # Mathematical note: dt12 should always be >= 0 in theory
-                # because Case 0's solution satisfies pe exactly, and limiting v1 to vmax
-                # reduces the required distance. If dt12 < 0, it indicates:
-                # - Numerical error (floating-point precision limits)
-                # - Implementation bug
-                # - Invalid input data
-                if dt12 < 0:
-                    raise ValueError(
-                        f"Invalid trajectory: cannot reach target with given constraints. "
-                        f"Distance too short ({np.fabs(dp):.3f}) for vmax ({vmax:.3f}). "
-                        f"Consider reducing vmax or increasing distance."
-                    )
-
-                p2 = pe - dp2e
-
-                self.dt.append(dt12)
-                self.dt.append(dt2e)
-                self.a.append(0.0)
-                self.a.append(-dec)
-                self.v.append(v2)
-                self.p.append(p2)
+            self.dt.append(dt01)
+            self.dt.append(dt1e)
+            self.a.extend([acc, -dec])
+            self.v.append(v1)
+            self.p.append(p1)
 
         else:
-            raise ValueError(
-                "No valid trajectory found (discriminant < 0). "
-                "The constraints might be too restrictive for the given end conditions."
-            )
+            # Case 1: vmax reached
+            self.case = 1
+
+            # Phase 1: Acceleration (v0 → vmax)
+            v1 = vmax * sign
+            dt01 = np.fabs((v1 - v0) / acc)
+            p1 = p_integ(p0, v0, acc, dt01)
+
+            self.dt.append(dt01)
+            self.a.append(acc)
+            self.v.append(v1)
+            self.p.append(p1)
+
+            # Phase 3: Deceleration (vmax → ve)
+            v2 = v1
+            dt2e = np.fabs((v2 - ve) / dec)
+            dp2e = p_integ(0, v2, -dec, dt2e)
+
+            # Phase 2: Constant velocity (vmax maintained)
+            dt12 = (pe - p1 - dp2e) / v1
+
+            # Mathematical note: dt12 should always be >= 0 in theory
+            # because Case 0's solution satisfies pe exactly, and limiting v1 to vmax
+            # reduces the required distance. If dt12 < 0, it indicates:
+            # - Numerical error (floating-point precision limits)
+            # - Implementation bug
+            # - Invalid input data
+            if dt12 < 0:
+                raise ValueError(
+                    f"Invalid trajectory: cannot reach target with given constraints. "
+                    f"Distance too short ({np.fabs(dp):.3f}) for vmax ({vmax:.3f}). "
+                    f"Consider reducing vmax or increasing distance."
+                )
+
+            p2 = pe - dp2e
+
+            self.dt.append(dt12)
+            self.dt.append(dt2e)
+            self.a.append(0.0)
+            self.a.append(-dec)
+            self.v.append(v2)
+            self.p.append(p2)
 
         self.trajectory_calced = True
         return sum(self.dt)
