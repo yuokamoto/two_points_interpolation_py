@@ -36,6 +36,9 @@ amax: maximum acceleration
 dmax: maximum deceleration (absolute value)
 '''
 
+# Tolerance threshold for deceleration distance comparison (2%)
+DECEL_DISTANCE_TOLERANCE = 0.02
+
 
 def v_integ(v0: float, a: float, dt: float) -> float:
     """Integrate velocity from acceleration."""
@@ -109,6 +112,66 @@ class TwoPointInterpolation:
         self.amax_decel = dec_max
         self.vmax = vmax
         self.constraints_setted = True
+
+    def _raise_deceleration_error(self, v0: float, ve: float, dp: float,
+                                  dec: float, sign: float, context: str) -> None:
+        """Check deceleration feasibility and raise appropriate error.
+
+        Args:
+            v0: initial velocity
+            ve: final velocity
+            dp: position displacement
+            dec: deceleration value (with sign)
+            sign: direction sign
+            context: error context ('discriminant' or 'no_positive_solution')
+        """
+        # Calculate minimum distance required to decelerate from v0 to ve
+        # Using kinematic equation: d = (v0² - ve²) / (2 * dec)
+        decel_distance = (v0**2 - ve**2) / (2 * abs(dec))
+
+        # Check if moving toward target (sign * v0 > 0 means velocity and direction align)
+        if sign * v0 > 0 and abs(decel_distance - abs(dp)) < abs(dp) * DECEL_DISTANCE_TOLERANCE:
+            # Within tolerance: deceleration distance is very close to available distance
+            if context == 'discriminant':
+                msg_prefix = "No valid trajectory found"
+            else:  # no_positive_solution
+                msg_prefix = "Insufficient distance for trajectory planning"
+
+            raise ValueError(
+                f"{msg_prefix}: "
+                f"current velocity {abs(v0):.4f} requires approximately "
+                f"{decel_distance:.4f} distance to reach target velocity {abs(ve):.4f}, "
+                f"nearly equal to available distance {abs(dp):.4f}. "
+                f"This leaves no room for trajectory planning. "
+                f"This typically occurs when the same goal is resent during motion. "
+                f"Consider checking if the goal has changed before recalculating trajectory."
+            )
+        elif sign * v0 > 0 and decel_distance > abs(dp):
+            # Deceleration distance exceeds available distance (more than tolerance)
+            raise ValueError(
+                f"Insufficient distance to decelerate: "
+                f"current velocity {abs(v0):.4f} requires {decel_distance:.4f} distance "
+                f"to reach target velocity {abs(ve):.4f}, but only {abs(dp):.4f} available. "
+                f"Shortage: {decel_distance - abs(dp):.4f} "
+                f"({abs(decel_distance - abs(dp))/abs(dp)*100:.2f}%). "
+                f"Consider reducing initial velocity or increasing distance."
+            )
+        else:
+            # General case
+            if context == 'discriminant':
+                raise ValueError(
+                    f"No valid trajectory found (discriminant <= 0). "
+                    f"The constraints might be too restrictive for the given end conditions. "
+                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
+                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}, "
+                    f"vmax: {self.vmax:.4f}"
+                )
+            else:  # no_positive_solution
+                raise ValueError(
+                    f"No positive time solution found for trajectory. "
+                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
+                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}"
+                )
 
     def init(self, p0: float, pe: float, acc_max: float, vmax: float,
              t0: float = 0, v0: float = 0, ve: float = 0, dec_max: Optional[float] = None) -> None:
@@ -185,41 +248,7 @@ class TwoPointInterpolation:
         # Check for invalid trajectory before attempting to solve
         if discriminant <= 0:
             # Discriminant <= 0: no valid solution
-            # Check common causes for better error message
-            # Calculate minimum distance required to decelerate from v0 to ve
-            # Using kinematic equation: d = (v0² - ve²) / (2 * dec)
-            decel_distance = (v0**2 - ve**2) / (2 * abs(dec))
-
-            # Check if moving toward target (sign * v0 > 0 means velocity and direction align)
-            if sign * v0 > 0 and abs(decel_distance - abs(dp)) < abs(dp) * 0.02:  # Within 2%
-                # Deceleration distance is very close to available distance (within 2%)
-                raise ValueError(
-                    f"No valid trajectory found: "
-                    f"current velocity {abs(v0):.4f} requires approximately "
-                    f"{decel_distance:.4f} distance to reach target velocity {abs(ve):.4f}, "
-                    f"nearly equal to available distance {abs(dp):.4f}. "
-                    f"This leaves no room for trajectory planning. "
-                    f"This typically occurs when the same goal is resent during motion. "
-                    f"Consider checking if the goal has changed before recalculating trajectory."
-                )
-            elif sign * v0 > 0 and decel_distance > abs(dp):
-                # Deceleration distance exceeds available distance (more than 2%)
-                raise ValueError(
-                    f"Insufficient distance to decelerate: "
-                    f"current velocity {abs(v0):.4f} requires {decel_distance:.4f} distance "
-                    f"to reach target velocity {abs(ve):.4f}, but only {abs(dp):.4f} available. "
-                    f"Shortage: {decel_distance - abs(dp):.4f} "
-                    f"({(decel_distance - abs(dp))/abs(dp)*100:.2f}%). "
-                    f"Consider reducing initial velocity or increasing distance."
-                )
-            else:
-                raise ValueError(
-                    f"No valid trajectory found (discriminant <= 0). "
-                    f"The constraints might be too restrictive for the given end conditions. "
-                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
-                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}, "
-                    f"vmax: {vmax:.4f}"
-                )
+            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'discriminant')
 
         # Valid solution exists (discriminant > 0)
         # Solve for t1 (acceleration duration)
@@ -238,37 +267,7 @@ class TwoPointInterpolation:
             dt01 = dt01_minus
         else:
             # No positive solution: check if this is due to insufficient deceleration distance
-            # Calculate minimum distance required to decelerate from v0 to ve
-            # Using kinematic equation: d = (v0² - ve²) / (2 * dec)
-            decel_distance = (v0**2 - ve**2) / (2 * abs(dec))
-            # Check if moving toward target (sign * v0 > 0 means velocity and direction align)
-            if sign * v0 > 0 and abs(decel_distance - abs(dp)) < abs(dp) * 0.02:  # Within 2%
-                raise ValueError(
-                    f"Insufficient distance for trajectory planning: "
-                    f"current velocity {abs(v0):.4f} requires approximately "
-                    f"{decel_distance:.4f} distance to reach target velocity {abs(ve):.4f}, "
-                    f"nearly equal to available distance {abs(dp):.4f}. "
-                    f"Difference: {abs(decel_distance - abs(dp)):.6f} "
-                    f"({abs(decel_distance - abs(dp))/abs(dp)*100:.4f}%). "
-                    f"This typically occurs when the same goal is resent during motion. "
-                    f"Consider checking if the goal has changed before recalculating trajectory."
-                )
-            elif sign * v0 > 0 and decel_distance > abs(dp):
-                # Deceleration distance exceeds available distance (more than 2%)
-                raise ValueError(
-                    f"Insufficient distance to decelerate: "
-                    f"current velocity {abs(v0):.4f} requires {decel_distance:.4f} distance "
-                    f"to reach target velocity {abs(ve):.4f}, but only {abs(dp):.4f} available. "
-                    f"Shortage: {decel_distance - abs(dp):.4f} "
-                    f"({(decel_distance - abs(dp))/abs(dp)*100:.2f}%). "
-                    f"Consider reducing initial velocity or increasing distance."
-                )
-            else:
-                raise ValueError(
-                    f"No positive time solution found for trajectory. "
-                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
-                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}"
-                )
+            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'no_positive_solution')
 
         v1 = v_integ(v0, acc, dt01)
 
