@@ -156,6 +156,10 @@ The `constant_jerk` module requires significant improvements:
 - Add comprehensive test suite for `constant_jerk` module
 - Verify mathematical correctness of jerk-based trajectories
 
+## Documentation
+
+- **[Edge Cases Analysis](docs/edge_cases_analysis.md)**: Detailed analysis of boundary conditions, minimum distances, and behavior with abnormal inputs (v0 > vmax)
+
 ## Requirements
 
 - Python 3.6+

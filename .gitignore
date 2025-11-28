@@ -48,6 +48,8 @@ htmlcov/
 
 # Matplotlib plots (if any generated during testing)
 *.png
+# Exception: Documentation images
+!docs/*.png
 *.jpg
 *.pdf
 
