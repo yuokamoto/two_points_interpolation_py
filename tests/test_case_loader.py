@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Utility for loading test cases from YAML configuration."""
 
-import os
 import yaml
 from pathlib import Path
 from typing import Dict, List, Any

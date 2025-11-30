@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 from two_point_interpolation import TwoPointInterpolation
-from test_case_loader import load_test_cases, get_test_category
+from test_case_loader import load_test_cases
 
 
 class TestVisualizer:

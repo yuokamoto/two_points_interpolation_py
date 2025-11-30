@@ -12,9 +12,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import unittest
 import warnings
-import numpy as np
 from two_point_interpolation import TwoPointInterpolation, v_integ, p_integ
 from test_case_loader import load_test_cases
+
+EXCEPTION_MAP = {
+    'ValueError': ValueError,
+    'TypeError': TypeError,
+    'AttributeError': AttributeError,
+    'RuntimeError': RuntimeError,
+    'NotImplementedError': NotImplementedError,
+}
 
 
 class YAMLBasedTestRunner(unittest.TestCase):
@@ -60,7 +67,9 @@ class YAMLBasedTestRunner(unittest.TestCase):
         expected = test_case.get('expected', {})
 
         tpi = TwoPointInterpolation()
-        error_type = eval(expected['error'])  # Convert string to exception class
+        error_type = EXCEPTION_MAP.get(expected['error'])
+        if error_type is None:
+            raise ValueError(f"Unknown exception type: {expected['error']}")
 
         with self.assertRaises(error_type):
             tpi.set_constraints(**params)
@@ -70,7 +79,9 @@ class YAMLBasedTestRunner(unittest.TestCase):
         expected = test_case.get('expected', {})
 
         tpi = TwoPointInterpolation()
-        error_type = eval(expected['error'])  # Convert string to exception class
+        error_type = EXCEPTION_MAP.get(expected['error'])
+        if error_type is None:
+            raise ValueError(f"Unknown exception type: {expected['error']}")
 
         with self.assertRaises(error_type) as context:
             tpi.calc_trajectory()  # Should fail - no init called
@@ -107,7 +118,6 @@ class YAMLBasedTestRunner(unittest.TestCase):
 
     def _run_standard_trajectory_test(self, test_case):
         """Handle standard trajectory tests (no errors expected)."""
-        name = test_case['name']
         params = test_case.get('params', {})
         expected = test_case.get('expected', {})
 
@@ -138,7 +148,10 @@ class YAMLBasedTestRunner(unittest.TestCase):
             tpi.init(**params)
 
         # Should raise error during calc_trajectory
-        error_type = eval(expected['error'])  # Convert string to exception class
+        error_type = EXCEPTION_MAP.get(expected['error'])
+        if error_type is None:
+            raise ValueError(f"Unknown exception type: {expected['error']}")
+
         with self.assertRaises(error_type) as context:
             tpi.calc_trajectory()
 
