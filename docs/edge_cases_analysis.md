@@ -210,7 +210,7 @@ if abs(decel_distance - abs(dp)) < abs(dp) * DECEL_DISTANCE_TOLERANCE:
 
 ### Reproduce Case 1 Analysis
 ```bash
-cd /home/rapyuta/two_points_interpolation_py
+# Navigate to the project root directory
 python3 << 'EOF'
 from two_point_interpolation import TwoPointInterpolation
 
