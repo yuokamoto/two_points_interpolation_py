@@ -1,5 +1,6 @@
 from typing import List, Tuple, Optional
 import numpy as np
+import warnings
 '''
 Two-point interpolation with asymmetric acceleration/deceleration
 
@@ -309,7 +310,6 @@ class TwoPointInterpolation:
                 p1 = p_integ(p0, v0, acc, dt01)
             else:
                 # Overspeed case: decelerate to vmax
-                import warnings
                 warnings.warn(
                     f"Initial velocity ({np.fabs(v0):.3f} m/s) exceeds vmax ({vmax:.3f} m/s). "
                     f"Trajectory will start with deceleration to reach vmax. "
