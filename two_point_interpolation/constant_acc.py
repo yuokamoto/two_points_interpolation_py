@@ -296,13 +296,33 @@ class TwoPointInterpolation:
             # Case 1: vmax reached
             self.case = 1
 
-            # Phase 1: Acceleration (v0 → vmax)
+            # Phase 1: Acceleration or deceleration to reach vmax
             v1 = vmax * sign
-            dt01 = np.fabs((v1 - v0) / acc)
-            p1 = p_integ(p0, v0, acc, dt01)
+
+            # Check if we need to accelerate or decelerate to reach vmax
+            # sign * v0 < sign * v1: need to accelerate (v0 moving slower than v1 in direction)
+            # sign * v0 > sign * v1: need to decelerate (v0 moving faster than v1 in direction)
+            if sign * v0 < sign * v1:
+                # Normal case: accelerate to vmax
+                dt01 = np.fabs((v1 - v0) / acc)
+                a_phase1 = acc
+                p1 = p_integ(p0, v0, acc, dt01)
+            else:
+                # Overspeed case: decelerate to vmax
+                import warnings
+                warnings.warn(
+                    f"Initial velocity ({np.fabs(v0):.3f} m/s) exceeds vmax ({vmax:.3f} m/s). "
+                    f"Trajectory will start with deceleration to reach vmax. "
+                    f"Consider reducing initial velocity or increasing vmax.",
+                    UserWarning,
+                    stacklevel=2
+                )
+                dt01 = np.fabs((v1 - v0) / dec)
+                a_phase1 = -dec
+                p1 = p_integ(p0, v0, -dec, dt01)
 
             self.dt.append(dt01)
-            self.a.append(acc)
+            self.a.append(a_phase1)
             self.v.append(v1)
             self.p.append(p1)
 

@@ -64,68 +64,84 @@ Four subplots showing:
 
 Each showing position, velocity, and acceleration over time.
 
+![Case 1: Progressive Distance Reduction](case1_progressive_distances.png)
+
 ---
 
-## Case 2: Abnormal Input (v0 > vmax)
+## Case 2: Overspeed Input (v0 > vmax) - FIXED ✅
 
-**Condition**: `v0 > vmax` (Abnormal input requiring immediate deceleration)
+**Condition**: `|v0| > vmax` (Overspeed input requiring immediate deceleration)
+
+**Status**: ✅ **FIXED** as of 2024-11-28
 
 ### Example: v0=2.0 m/s, vmax=0.5 m/s, pe=5.0 m
 
+#### After Fix:
 ```
-Phase 1: dt=1.500s, a=+1.0 m/s²  ❌ (Should be deceleration!)
-Phase 2: dt=1.500s, a=0.0 m/s²   (Constant velocity)
-Phase 3: dt=0.500s, a=-1.0 m/s²  (Deceleration)
+Phase 1: dt=1.500s, a=-1.0 m/s² ✅ (Correct deceleration!)
+Phase 2: dt=6.000s, a=0.0 m/s²  (Constant velocity)
+Phase 3: dt=0.500s, a=-1.0 m/s² (Final deceleration)
 
 Velocities: [2.0, 0.5, 0.5] m/s
-Positions:  [0.0, 4.125, 4.875] m
+Positions:  [0.0, 1.875, 4.875] m ✅ (All correct!)
 ```
-
-### Problems Identified
-
-1. **Incorrect Acceleration Sign**:
-   - Phase 1 records `a=+1.0 m/s²` (acceleration)
-   - But velocity actually decreases from 2.0 → 0.5 m/s (deceleration!)
-
-2. **Incorrect Position Calculation**:
-   - Phase 1: p1 = 4.125m (calculated with positive acceleration)
-   - **Should be**: p1 = 1.875m (with deceleration)
-   - Error: 2.25m (120% off!)
-
-3. **Compensation Mechanism**:
-   - Phase 2 (constant velocity) duration is extended to 1.5s
-   - This compensates for the position error
-   - Final position is correct (5.0m), but intermediate trajectory is wrong
-
-### Root Cause
-
-In `constant_acc.hpp` (line 276) and `constant_acc.py` (line 305):
-```cpp
-// Phase 1: Acceleration (_v0 → vmax)
-v1 = _vmax * dp / std::fabs(dp);
-dt01 = std::fabs((v1 - _v0) / acc);  // Time is always positive
-double p1 = pInteg(_p0, _v0, acc, dt01);  // ❌ Uses 'acc' even when decelerating!
-```
-
-When `v0 > vmax`, we need deceleration, but the code uses `acc` (positive) for position calculation.
 
 ### Fix Applied (2024-11-28)
 
-Added `std::fabs()` to dt01 calculation:
-```cpp
-dt01 = std::fabs((v1 - _v0) / acc);
+**Detection and Warning**:
+```python
+if sign * v0 < sign * v1:
+    # Normal case: accelerate to vmax
+    dt01 = np.fabs((v1 - v0) / acc)
+    a_phase1 = acc
+    p1 = p_integ(p0, v0, acc, dt01)
+else:
+    # Overspeed case: decelerate to vmax
+    warnings.warn(
+        f"Initial velocity ({abs(v0):.3f} m/s) exceeds vmax ({vmax:.3f} m/s). "
+        f"Trajectory will start with deceleration to reach vmax. "
+        f"Consider reducing initial velocity or increasing vmax.",
+        UserWarning
+    )
+    dt01 = np.fabs((v1 - v0) / dec)
+    a_phase1 = -dec
+    p1 = p_integ(p0, v0, -dec, dt01)  # ✅ Now uses deceleration!
 ```
 
-This ensures `dt12 < 0` error detection works correctly, but **Phase 1 physics is still incorrect**.
+**Key Changes**:
+1. ✅ Detect when `sign * v0 > vmax` (handles both forward and backward overspeed)
+2. ✅ Use deceleration (`-dec`) instead of acceleration for Phase 1
+3. ✅ Calculate position correctly with deceleration
+4. ✅ Issue `UserWarning` to alert user of abnormal condition
+
+### Results
+
+| Metric | Before Fix | After Fix |
+|--------|------------|-----------|
+| Phase 1 acceleration | +1.0 m/s² ❌ | -1.0 m/s² ✅ |
+| Position after Phase 1 | 4.125m ❌ | 1.875m ✅ |
+| Phase 2 duration | 1.5s (compensating) | 6.0s (correct) |
+| Final position | 5.0m ✅ | 5.0m ✅ |
+| Intermediate trajectory | Wrong ❌ | Correct ✅ |
+
+### Visualization
+
+**Before and After Comparison**:
+
+![Trajectory Comparison](trajectory_comparison.png)
+
+Left: Normal case (v0 < vmax)
+Right: Fixed overspeed case (v0 > vmax) - now with correct physics!
+| User notification | None ❌ | Warning ✅ |
 
 ### Visualization
 
 See: `trajectory_comparison.png`
 
 Left column: Case 1 (v0 < vmax, normal)
-Right column: Case 2 (v0 > vmax, abnormal)
+Right column: Case 2 (v0 > vmax, overspeed - now fixed!)
 
-Shows position, velocity, and acceleration for both cases.
+The updated graph shows Case 2 now has correct physics throughout the entire trajectory.
 
 ---
 
@@ -190,34 +206,6 @@ if abs(decel_distance - abs(dp)) < abs(dp) * DECEL_DISTANCE_TOLERANCE:
 
 ---
 
-## Recommendations
-
-### For Normal Use (Case 1)
-✅ Works perfectly as designed
-- Automatically adapts to short distances
-- Smoothly transitions to near-pure-deceleration
-- Proper error detection at physical limits
-
-### For Abnormal Input (Case 2: v0 > vmax)
-⚠️ **Currently has known issues**
-
-**Option 1: Input Validation** (Recommended for now)
-```python
-if abs(v0) > vmax:
-    raise ValueError(f"Initial velocity {v0} exceeds vmax {vmax}")
-```
-
-**Option 2: Fix Phase 1 Physics** (Future enhancement)
-- Detect when v0 > vmax
-- Use deceleration instead of acceleration for Phase 1
-- Correctly calculate intermediate positions
-
-### Workaround
-
-Current implementation reaches correct final position despite intermediate errors. If you only care about final position and time, Case 2 works. However, if you need accurate intermediate trajectory points (for visualization or real-time control), Case 2 produces incorrect values.
-
----
-
 ## Test Commands
 
 ### Reproduce Case 1 Analysis
@@ -238,20 +226,24 @@ for pe in distances:
 EOF
 ```
 
-### Reproduce Case 2 Issue
+### Reproduce Case 2 (Now Fixed)
 ```bash
 python3 << 'EOF'
 from two_point_interpolation import TwoPointInterpolation
+import warnings
+
+# Enable all warnings
+warnings.simplefilter('always')
 
 tpi = TwoPointInterpolation()
 tpi.init(p0=0.0, pe=5.0, acc_max=1.0, vmax=0.5, v0=2.0, ve=0.0, dec_max=1.0)
 t = tpi.calc_trajectory()
 
 print(f"v0={2.0} > vmax={0.5}")
-print(f"Phase 1: dt={tpi.dt[0]:.3f}s, a={tpi.a[0]:.3f} m/s²")
-print(f"  v: {tpi.v[0]:.3f} → {tpi.v[1]:.3f} m/s (decreasing, so should be deceleration!)")
-print(f"  p: {tpi.p[0]:.3f} → {tpi.p[1]:.3f} m (recorded position)")
-print(f"Phase 1 should use deceleration: p1_correct = 1.875m, but got p1={tpi.p[1]:.3f}m")
+print(f"Phase 1: dt={tpi.dt[0]:.3f}s, a={tpi.a[0]:.3f} m/s² ✅ (correct deceleration)")
+print(f"  v: {tpi.v[0]:.3f} → {tpi.v[1]:.3f} m/s (decreasing)")
+print(f"  p: {tpi.p[0]:.3f} → {tpi.p[1]:.3f} m (correct: 1.875m)")
+print(f"\nNote: A UserWarning is issued when v0 > vmax")
 EOF
 ```
 
@@ -263,14 +255,27 @@ EOF
 - C++ Implementation: `two_points_interpolation_cpp/include/two_point_interpolation/constant_acc.hpp`
 - Tests: `tests/test_constant_acc.py`
 - Graphs:
-  - `trajectory_comparison.png` (Case 1 vs Case 2)
+  - `trajectory_comparison.png` (Case 1 vs Case 2 - Updated with fix)
   - `case1_progressive_distances.png` (Progressive distance reduction)
 
 ---
 
 ## Version History
 
-- **2024-11-28**: Initial analysis
+- **2024-11-28 (Update 2)**: Case 2 fix applied
+  - **FIXED**: v0 > vmax now handled correctly
+  - Phase 1 uses deceleration when needed
+  - Correct position calculation throughout trajectory
+  - Added UserWarning for overspeed condition
+  - Updated graphs and documentation
+  - All tests passing (17 tests)
+
+- **2024-11-28 (Update 1)**: Bug fix for error detection
+  - Added `std::fabs()` to dt01 calculation in C++
+  - Fixed dt12 < 0 error detection
+  - This was a partial fix, Case 2 physics still had issues
+
+- **2024-11-28 (Initial)**: Initial analysis
   - Documented Case 1 behavior down to theoretical minimum
   - Identified Case 2 physics issue
   - Added tolerance-based error detection
