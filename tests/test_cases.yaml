@@ -1,0 +1,720 @@
+# Test cases for two_point_interpolation
+# All test cases from test_constant_acc.py migrated to YAML format
+# Shared between unit tests and visualization scripts
+
+# Basic functionality tests
+basic_tests:
+  - name: test_init_method
+    description: "Test the init method with valid parameters"
+    params:
+      p0: 10.0
+      pe: 50.0
+      acc_max: 2.0
+      vmax: 10.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      init_success: true
+      properties:
+        p0: 10.0
+        pe: 50.0
+        amax_accel: 2.0
+        amax_decel: 2.0  # Should default to acc_max
+        vmax: 10.0
+
+  - name: test_zero_displacement
+    description: "Test dp=0, dv=0 case"
+    params:
+      p0: 5.0
+      pe: 5.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 10.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: -1
+      total_time: 0.0
+
+  - name: test_invalid_dp0_with_dv_nonzero
+    description: "Test that dp=0 with dv!=0 raises error"
+    test_type: error
+    params:
+      p0: 5.0
+      pe: 5.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 10.0
+      v0: 0.0
+      ve: 1.0
+    expected:
+      error: ValueError
+      error_contains: "is not supported"
+
+# Case 0 tests (vmax not reached)
+case0_tests:
+  - name: test_case0_forward_zero_velocities
+    description: "Case 0: Forward, zero v0/ve, asymmetric acc/dec"
+    params:
+      p0: 0.0
+      pe: 10.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 20.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_backward_zero_velocities
+    description: "Case 0: Backward, zero v0/ve, asymmetric acc/dec"
+    params:
+      p0: 10.0
+      pe: 0.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 20.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_different_acc_dec
+    description: "Case 0: Forward, zero v0/ve, different acc/dec"
+    params:
+      p0: 0.0
+      pe: 5.0
+      acc_max: 1.5
+      dec_max: 2.5
+      vmax: 15.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_symmetric_acc_dec
+    description: "Case 0: Forward, zero v0/ve, symmetric acc/dec"
+    params:
+      p0: 0.0
+      pe: 8.0
+      acc_max: 2.0
+      dec_max: 2.0
+      vmax: 25.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_non_zero_start_pos
+    description: "Case 0: Forward, zero v0/ve, non-zero start position"
+    params:
+      p0: 5.0
+      pe: 15.0
+      acc_max: 3.0
+      dec_max: 4.0
+      vmax: 30.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_backward_non_zero_pos
+    description: "Case 0: Backward, zero v0/ve, non-zero positions"
+    params:
+      p0: 20.0
+      pe: 8.0
+      acc_max: 2.5
+      dec_max: 3.5
+      vmax: 28.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_with_initial_velocity
+    description: "Case 0: Forward, non-zero v0"
+    params:
+      p0: 0.0
+      pe: 8.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 20.0
+      v0: 1.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_backward_with_initial_velocity
+    description: "Case 0: Backward, non-zero v0"
+    params:
+      p0: 10.0
+      pe: 2.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 20.0
+      v0: 0.5
+      ve: 0.0
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_with_end_velocity
+    description: "Case 0: Forward, non-zero ve"
+    params:
+      p0: 0.0
+      pe: 6.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 18.0
+      v0: 0.0
+      ve: 0.5
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_backward_with_end_velocity
+    description: "Case 0: Backward, non-zero ve"
+    params:
+      p0: 12.0
+      pe: 4.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 20.0
+      v0: 0.0
+      ve: 0.3
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_with_both_velocities
+    description: "Case 0: Forward, non-zero v0 and ve"
+    params:
+      p0: 0.0
+      pe: 5.0
+      acc_max: 2.0
+      dec_max: 3.0
+      vmax: 18.0
+      v0: 0.8
+      ve: 0.4
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+  - name: test_case0_backward_both_velocities
+    description: "Case 0: Backward, non-zero v0 and ve"
+    params:
+      p0: 10.0
+      pe: 5.0
+      acc_max: 2.5
+      dec_max: 3.5
+      vmax: 22.0
+      v0: 0.6
+      ve: 0.3
+    expected:
+      case: 0
+      total_time_min: 0.5
+
+# Case 1 tests (vmax reached)
+case1_tests:
+  - name: test_case1_forward_zero_velocities
+    description: "Case 1: Forward, zero v0/ve, asymmetric acc/dec"
+    params:
+      p0: 0.0
+      pe: 50.0
+      acc_max: 2.0
+      dec_max: 4.0
+      vmax: 8.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 6.25
+
+  - name: test_case1_backward_zero_velocities
+    description: "Case 1: Backward, zero v0/ve, asymmetric acc/dec"
+    params:
+      p0: 50.0
+      pe: 0.0
+      acc_max: 2.0
+      dec_max: 4.0
+      vmax: 8.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 6.25
+
+  - name: test_case1_symmetric_acc_dec
+    description: "Case 1: Forward, zero v0/ve, symmetric acc/dec"
+    params:
+      p0: 0.0
+      pe: 60.0
+      acc_max: 3.0
+      dec_max: 3.0
+      vmax: 10.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 6.67
+
+  - name: test_case1_faster_deceleration
+    description: "Case 1: Forward, zero v0/ve, faster deceleration"
+    params:
+      p0: 0.0
+      pe: 80.0
+      acc_max: 2.5
+      dec_max: 5.0
+      vmax: 12.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 6.67
+
+  - name: test_case1_faster_acceleration
+    description: "Case 1: Forward, zero v0/ve, faster acceleration"
+    params:
+      p0: 0.0
+      pe: 100.0
+      acc_max: 4.0
+      dec_max: 2.5
+      vmax: 12.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 8.33
+
+  - name: test_case1_non_zero_start_position
+    description: "Case 1: Forward, zero v0/ve, non-zero start position"
+    params:
+      p0: 10.0
+      pe: 90.0
+      acc_max: 3.0
+      dec_max: 4.5
+      vmax: 10.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 8.0
+
+  - name: test_case1_backward_non_zero_positions
+    description: "Case 1: Backward, zero v0/ve, non-zero positions"
+    params:
+      p0: 100.0
+      pe: 20.0
+      acc_max: 2.8
+      dec_max: 3.8
+      vmax: 9.0
+      v0: 0.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 8.89
+
+  - name: test_case1_with_initial_velocity
+    description: "Case 1: Forward, non-zero v0"
+    params:
+      p0: 0.0
+      pe: 55.0
+      acc_max: 2.0
+      dec_max: 4.0
+      vmax: 8.0
+      v0: 1.5
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 6.0
+
+  - name: test_case1_backward_with_initial_velocity
+    description: "Case 1: Backward, non-zero v0"
+    params:
+      p0: 60.0
+      pe: 0.0
+      acc_max: 2.5
+      dec_max: 4.0
+      vmax: 9.0
+      v0: 1.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time_min: 6.67
+
+  - name: test_case1_with_end_velocity
+    description: "Case 1: Forward, non-zero ve"
+    params:
+      p0: 0.0
+      pe: 52.0
+      acc_max: 2.0
+      dec_max: 4.0
+      vmax: 8.5
+      v0: 0.0
+      ve: 1.2
+    expected:
+      case: 1
+      total_time_min: 6.0
+
+  - name: test_case1_backward_with_end_velocity
+    description: "Case 1: Backward, non-zero ve"
+    params:
+      p0: 55.0
+      pe: 0.0
+      acc_max: 2.5
+      dec_max: 4.0
+      vmax: 9.0
+      v0: 0.0
+      ve: 0.8
+    expected:
+      case: 1
+      total_time_min: 6.0
+
+  - name: test_case1_with_both_velocities
+    description: "Case 1: Forward, non-zero v0 and ve"
+    params:
+      p0: 0.0
+      pe: 58.0
+      acc_max: 2.0
+      dec_max: 4.0
+      vmax: 9.0
+      v0: 1.8
+      ve: 1.0
+    expected:
+      case: 1
+      total_time_min: 6.0
+
+  - name: test_case1_backward_both_velocities
+    description: "Case 1: Backward, non-zero v0 and ve"
+    params:
+      p0: 70.0
+      pe: 10.0
+      acc_max: 2.5
+      dec_max: 3.5
+      vmax: 10.0
+      v0: 1.5
+      ve: 0.8
+    expected:
+      case: 1
+      total_time_min: 6.0
+
+# Performance comparison tests
+performance_tests:
+  - name: test_faster_deceleration_comparison
+    description: "Test that faster deceleration reduces total time"
+    test_type: comparison
+    params_set:
+      - name: "slower_deceleration"
+        params:
+          p0: 0.0
+          pe: 30.0
+          acc_max: 2.0
+          dec_max: 2.0
+          vmax: 10.0
+          v0: 0.0
+          ve: 0.0
+        expected:
+          case: 0
+      - name: "faster_deceleration"
+        params:
+          p0: 0.0
+          pe: 30.0
+          acc_max: 2.0
+          dec_max: 4.0
+          vmax: 10.0
+          v0: 0.0
+          ve: 0.0
+        expected:
+          case: 0
+    expected:
+      comparison: "time[1] < time[0]"  # Faster deceleration should reduce time
+
+  - name: test_default_dec_max_comparison
+    description: "Test that dec_max defaults to acc_max when not specified"
+    test_type: comparison
+    params_set:
+      - name: "without_dec_max"
+        params:
+          p0: 0.0
+          pe: 20.0
+          acc_max: 2.0
+          vmax: 10.0
+          v0: 0.0
+          ve: 0.0
+        expected:
+          case: 0
+      - name: "with_explicit_dec_max"
+        params:
+          p0: 0.0
+          pe: 20.0
+          acc_max: 2.0
+          dec_max: 2.0
+          vmax: 10.0
+          v0: 0.0
+          ve: 0.0
+        expected:
+          case: 0
+    expected:
+      comparison: "abs(time[0] - time[1]) < 0.001"  # Times and trajectories should be nearly identical
+
+# Constraint validation tests
+constraint_tests:
+  - name: test_negative_acceleration
+    description: "Test constraint validation for negative acceleration"
+    test_type: constraint_validation
+    params:
+      acc_max: -1.0
+      vmax: 2.0
+      dec_max: 5.0
+    expected:
+      error: ValueError
+
+  - name: test_negative_vmax
+    description: "Test constraint validation for negative vmax"
+    test_type: constraint_validation
+    params:
+      acc_max: 2.0
+      vmax: -1.0
+      dec_max: 5.0
+    expected:
+      error: ValueError
+
+  - name: test_negative_deceleration
+    description: "Test constraint validation for negative deceleration"
+    test_type: constraint_validation
+    params:
+      acc_max: 2.0
+      vmax: 2.0
+      dec_max: -5.0
+    expected:
+      error: ValueError
+
+  - name: test_zero_acceleration
+    description: "Test constraint validation for zero acceleration"
+    test_type: constraint_validation
+    params:
+      acc_max: 0.0
+      vmax: 2.0
+      dec_max: 5.0
+    expected:
+      error: ValueError
+
+# Integration function tests
+integration_tests:
+  - name: test_v_integ
+    description: "Test velocity integration function"
+    test_type: utility
+    function: v_integ
+    params:
+      v0: 10.0
+      a: 2.0
+      dt: 5.0
+    expected:
+      result: 20.0  # 10.0 + 2.0 * 5.0
+
+  - name: test_p_integ
+    description: "Test position integration function"
+    test_type: utility
+    function: p_integ
+    params:
+      p0: 0.0
+      v0: 10.0
+      a: 2.0
+      dt: 5.0
+    expected:
+      result: 75.0  # 0.0 + 10.0 * 5.0 + 0.5 * 2.0 * 5.0^2
+
+# Boundary condition tests
+boundary_tests:
+  - name: test_get_point_before_start
+    description: "Test get_point at times before trajectory start"
+    params:
+      p0: 5.0
+      pe: 15.0
+      acc_max: 1.0
+      vmax: 10.0
+      dec_max: 1.0
+      v0: 2.0
+      ve: 1.0
+    test_type: boundary
+    test_time: 0.0  # At start
+    expected:
+      position: 5.0
+      velocity: 2.0
+
+  - name: test_get_point_after_end
+    description: "Test get_point at times after trajectory end"
+    params:
+      p0: 5.0
+      pe: 15.0
+      acc_max: 1.0
+      vmax: 10.0
+      dec_max: 1.0
+      v0: 2.0
+      ve: 1.0
+    test_type: boundary
+    test_time: "end+1.0"  # 1 second after end
+    expected:
+      position: 15.0
+      velocity: 1.0
+
+# Overspeed condition tests
+overspeed_tests:
+  - name: test_forward_overspeed_warning
+    description: "Forward overspeed: v0 > vmax"
+    params:
+      p0: 0.0
+      pe: 5.0
+      acc_max: 1.0
+      vmax: 0.5
+      dec_max: 1.0
+      v0: 2.0
+      ve: 0.0
+    expected:
+      case: 1
+      warning: true
+      warning_type: UserWarning
+      warning_contains: "exceeds vmax"
+      phase1_acceleration: -1.0  # Should decelerate
+      p1: 1.875  # Intermediate position after deceleration (not 4.125)
+    notes: |
+      When v0 > vmax, Phase 1 should decelerate from v0 to vmax.
+      dt01 = (0.5 - 2.0) / -1.0 = 1.5s
+      p1 = 0 + 2.0*1.5 + 0.5*(-1.0)*(1.5^2) = 3.0 - 1.125 = 1.875m
+
+  - name: test_backward_overspeed_warning
+    description: "Backward overspeed: v0 < -vmax"
+    params:
+      p0: 10.0
+      pe: 5.0
+      acc_max: 1.0
+      vmax: 0.5
+      dec_max: 1.0
+      v0: -2.0
+      ve: 0.0
+    expected:
+      case: 1
+      warning: true
+      warning_type: UserWarning
+      warning_contains: "exceeds vmax"
+      phase1_acceleration: 1.0  # Should decelerate (positive in backward direction)
+    notes: |
+      When v0 < -vmax (backward overspeed), Phase 1 should decelerate
+      by applying positive acceleration (slowing down backward motion).
+
+  - name: test_no_warning_when_within_limit
+    description: "Normal case: v0 within vmax"
+    params:
+      p0: 0.0
+      pe: 5.0
+      acc_max: 2.0
+      vmax: 5.0
+      dec_max: 2.0
+      v0: 0.5
+      ve: 0.0
+    expected:
+      case: 0  # High vmax means Case 0 (no cruise phase)
+      warning: false
+      phase1_acceleration: 2.0  # Should accelerate normally
+
+# Error condition tests
+error_tests:
+  - name: test_calc_trajectory_without_setup
+    description: "Test calc_trajectory raises error when not properly initialized"
+    test_type: "no_init"
+    expected:
+      error: ValueError
+      error_contains: "End point not set"
+    notes: |
+      Tests that calling calc_trajectory() without proper initialization raises ValueError.
+      This validates that the trajectory calculation requires proper setup first.
+
+  - name: test_same_goal_resent_error
+    description: "Same goal resent during motion (within 2%)"
+    test_type: error
+    params:
+      p0: 0.6392
+      pe: 0.79
+      acc_max: 1.0
+      vmax: 1.0
+      dec_max: 1.0
+      v0: 0.5492
+      ve: 0.0
+    expected:
+      error: ValueError
+      error_contains:
+        - "Insufficient distance for trajectory planning"
+        - "same goal is sent again"
+        - "nearly equal to available distance"
+    notes: |
+      From real scenario: v0=0.5492 m/s, dp=0.1508 m requires ~0.15081 m to decel
+      Difference is within 2% tolerance, triggering "same goal resent" error.
+
+  - name: test_insufficient_distance_error
+    description: "Insufficient distance (>2% away from deceleration distance)"
+    test_type: error
+    params:
+      p0: 0.0
+      pe: 0.5
+      acc_max: 1.0
+      vmax: 2.0
+      dec_max: 1.0
+      v0: 2.0
+      ve: 0.0
+    expected:
+      error: ValueError
+      error_contains:
+        - "Insufficient distance to decelerate"
+        - "Shortage:"
+    notes: |
+      decel_dist = v0^2 / (2 * dec) = 2.0^2 / (2 * 1.0) = 2.0m
+      Available distance = 0.5m
+      Shortage = (2.0 - 0.5) / 2.0 = 75% > 2%
+
+  - name: test_general_constraint_error_discriminant
+    description: "General constraint error when discriminant <= 0"
+    test_type: error
+    params:
+      p0: 0.0
+      pe: 0.5
+      acc_max: 1.0
+      vmax: 0.5
+      dec_max: 1.0
+      v0: 2.0
+      ve: 2.0
+    expected:
+      error: ValueError
+      error_contains_any:
+        - "No valid trajectory found"
+        - "Insufficient distance"
+        - "constraints"
+    notes: |
+      Start above vmax and need to end above vmax, but distance is too short.
+      This creates an impossible trajectory with discriminant <= 0.
+
+  - name: test_general_constraint_error_no_positive_solution
+    description: "Error when trajectory calculation fails"
+    test_type: error
+    params:
+      p0: 0.0
+      pe: 0.1
+      acc_max: 0.1
+      vmax: 0.5
+      dec_max: 0.1
+      v0: 1.5
+      ve: 0.0
+    expected:
+      error: ValueError
+      error_contains_any:
+        - "Insufficient distance"
+        - "No valid trajectory"
+        - "No positive time solution"
+    notes: |
+      High speed with tight constraints creates infeasible trajectory.

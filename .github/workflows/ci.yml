@@ -49,4 +49,9 @@ jobs:
 
     - name: Run Python tests
       run: |
-        pytest tests/ -v --tb=short --cov=two_point_interpolation --cov-report=term-missing
+        pytest tests/test_yaml_cases.py -v --tb=short --cov=two_point_interpolation --cov-report=term-missing
+
+    - name: Test visualization system
+      run: |
+        python tests/generate_plots.py --list
+        python tests/generate_plots.py --case test_case0_forward_zero_velocities

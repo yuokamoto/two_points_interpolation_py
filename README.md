@@ -96,10 +96,25 @@ python3 examples/example_constant_jerk.py
 
 ## Testing
 
+The library includes a comprehensive YAML-based testing system.
+
+### Quick Start
+
 ```bash
 # Run all tests
-python3 -m pytest tests/ -v
+python -m pytest tests/test_yaml_cases.py -v
+
+# Generate trajectory visualizations
+python tests/generate_plots.py
+
+# List available test categories
+python tests/generate_plots.py --list
 ```
+### Detailed Documentation
+
+For comprehensive testing information, debugging guides, and visualization usage:
+
+**📖 [See tests/README.md](tests/README.md) for complete testing documentation**
 
 ## Project Structure
 
@@ -107,14 +122,20 @@ python3 -m pytest tests/ -v
 two_points_interpolation_py/
 ├── two_point_interpolation/              # Main package
 │   ├── __init__.py                       # Package exports
-│   ├── constant_acc.py                   # Acceleration-based planning
+│   ├── constant_acc.py                   # Acceleration-based planning (enhanced)
 │   └── constant_jerk.py                  # Jerk-based planning (TODO: needs review)
 ├── examples/                             # Example scripts
 │   └── images/                           # Generated plots
-├── tests/                                # Unit tests
+├── tests/                                # YAML-based test suite (51+ tests)
+│   ├── test_cases.yaml                   # Test case definitions
+│   ├── test_case_loader.py               # YAML parsing utilities
+│   ├── test_yaml_cases.py                # Test runner
+│   ├── generate_plots.py                 # Visualization tool
+│   └── plots/                            # Generated test plots
 └── docs/                                 # Documentation
     ├── CONSTANT_ACC_DERIVATION.md        # Mathematical details
     ├── QUADRATIC_COEFFICIENTS_DERIVATION.md  # Quadratic solution derivation
+    ├── edge_cases_analysis.md             # Edge cases and overspeed analysis
     └── CHANGELOG.md                      # Version history
 ```
 
@@ -137,11 +158,13 @@ Trajectory when vmax is reached. Shows three phases: acceleration, constant velo
 ## Documentation
 
 - **Getting Started**: This README
+- **Testing Guide**: [tests/README.md](tests/README.md) - Comprehensive testing documentation
 - **Mathematical Derivation**: [docs/CONSTANT_ACC_DERIVATION.md](docs/CONSTANT_ACC_DERIVATION.md)
 - **Detailed Coefficient Derivation**: [docs/QUADRATIC_COEFFICIENTS_DERIVATION.md](docs/QUADRATIC_COEFFICIENTS_DERIVATION.md)
+- **Edge Cases Analysis**: [docs/edge_cases_analysis.md](docs/edge_cases_analysis.md)
 - **Change History**: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
-## TODO
+## Known Issues & TODO
 
 ### Constant Jerk Implementation Issues
 The `constant_jerk` module requires significant improvements:
