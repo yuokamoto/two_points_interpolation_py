@@ -434,16 +434,12 @@ class TwoAngleInterpolation(TwoPointInterpolation):
     Usage:
         interp = TwoAngleInterpolation()
         interp.init(p0=350*np.pi/180, pe=10*np.pi/180,
-                    amax=1.0, vmax=10.0, dec_max=1.0)
+                    acc_max=1.0, vmax=10.0, dec_max=1.0)
         total_time = interp.calc_trajectory()
         p, v, a = interp.get_point(t, normalize_output=True)
     """
 
-    def __init__(self) -> None:
-        """Initialize angle interpolation."""
-        super().__init__()
-
-    def init(self, p0: float, pe: float, amax: float, vmax: float,
+    def init(self, p0: float, pe: float, acc_max: float, vmax: float,
              t0: float = 0.0, v0: float = 0.0, ve: float = 0.0,
              dec_max: Optional[float] = None) -> None:
         """
@@ -454,12 +450,12 @@ class TwoAngleInterpolation(TwoPointInterpolation):
         Args:
             p0: Initial angle (radians)
             pe: Final angle (radians)
-            amax: Maximum acceleration (positive value)
+            acc_max: Maximum acceleration (positive value)
             vmax: Maximum velocity (positive value)
             t0: Initial time (default: 0.0)
             v0: Initial angular velocity (rad/s, default: 0.0)
             ve: Final angular velocity (rad/s, default: 0.0)
-            dec_max: Maximum deceleration (positive value). If None, defaults to amax
+            dec_max: Maximum deceleration (positive value). If None, defaults to acc_max
         """
         # Normalize start and end angles to [-π, π]
         p0_normalized = normalize_angle(p0)
@@ -471,7 +467,7 @@ class TwoAngleInterpolation(TwoPointInterpolation):
         # Set trajectory parameters using parent class methods
         self.set_initial(t0, p0_normalized, v0)
         self.set_point(p0_normalized + dp, ve)
-        self.set_constraints(amax, vmax, dec_max)
+        self.set_constraints(acc_max, vmax, dec_max)
 
     def get_point(self, t: float, normalize_output: bool = True) -> Tuple[float, float, float]:
         """

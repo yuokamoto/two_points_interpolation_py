@@ -454,7 +454,7 @@ class TwoAngleInterpolationTest(unittest.TestCase):
         pe_rad = pe_deg * np.pi / 180.0
 
         # Initialize and calculate trajectory
-        interp.init(p0=p0_rad, pe=pe_rad, amax=1.0, vmax=10.0, dec_max=1.0)
+        interp.init(p0=p0_rad, pe=pe_rad, acc_max=1.0, vmax=10.0, dec_max=1.0)
         t_total = interp.calc_trajectory()
 
         # Check start and end points
@@ -543,7 +543,7 @@ class TwoAngleInterpolationTest(unittest.TestCase):
         """Test that 360° difference results in no movement (shortest path is 0°)."""
         interp = TwoAngleInterpolation()
 
-        interp.init(p0=0.0, pe=2*np.pi, amax=1.0, vmax=10.0, dec_max=1.0)
+        interp.init(p0=0.0, pe=2*np.pi, acc_max=1.0, vmax=10.0, dec_max=1.0)
         t_total = interp.calc_trajectory()
 
         p0, v0, a0 = interp.get_point(0.0)
@@ -564,7 +564,7 @@ class TwoAngleInterpolationTest(unittest.TestCase):
         angle_350 = 350.0 * np.pi / 180.0
         angle_10 = 10.0 * np.pi / 180.0
 
-        interp.init(p0=angle_350, pe=angle_10, amax=1.0, vmax=10.0, dec_max=1.0)
+        interp.init(p0=angle_350, pe=angle_10, acc_max=1.0, vmax=10.0, dec_max=1.0)
         t_total = interp.calc_trajectory()
 
         # Get point at middle of trajectory with normalization
