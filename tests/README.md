@@ -190,13 +190,6 @@ expected:
 3. Run tests to verify
 4. Generate visualization if needed
 
-### Test Case Categories
-
-- **51 total test cases** across 9 categories
-- **32 visualizable cases** for trajectory analysis
-- **Comprehensive coverage** of all trajectory scenarios
-- **Physics validation** with boundary continuity checks
-
 ## Legacy Tests
 
 Legacy test files are preserved for reference:
@@ -226,23 +219,6 @@ Legacy test files are preserved for reference:
 2. **Implement feature**: Write the code to pass tests
 3. **Verify visualization**: Ensure plots look correct
 4. **Update documentation**: Add notes about new functionality
-
-## Test Statistics
-
-Current test coverage:
-
-| Category | Test Cases | Visualizable | Purpose |
-|----------|------------|--------------|---------|
-| basic_tests | 3 | 2 | Core functionality |
-| case0_tests | 12 | 12 | No cruise phase scenarios |
-| case1_tests | 13 | 13 | With cruise phase scenarios |
-| performance_tests | 2 | 0 | Performance comparisons |
-| constraint_tests | 4 | 0 | Parameter validation |
-| integration_tests | 2 | 0 | Utility functions |
-| boundary_tests | 2 | 2 | Boundary conditions |
-| overspeed_tests | 3 | 3 | Warning scenarios |
-| error_tests | 5 | 0 | Error conditions |
-| **Total** | **51** | **32** | **Complete coverage** |
 
 ## Continuous Integration
 
