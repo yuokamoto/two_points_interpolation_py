@@ -21,6 +21,8 @@ __version__ = "1.2.1"
 
 # Constant acceleration interpolation
 from .constant_acc import TwoPointInterpolation as TwoPointInterpolationAcc
+from .constant_acc import TwoAngleInterpolation
+from .constant_acc import normalize_angle
 from .constant_acc import p_integ, v_integ
 
 # Constant jerk interpolation
@@ -33,6 +35,8 @@ __all__ = [
     # Constant acceleration
     "TwoPointInterpolation",  # Default (same as TwoPointInterpolationAcc)
     "TwoPointInterpolationAcc",
+    "TwoAngleInterpolation",
+    "normalize_angle",
     "p_integ",
     "v_integ",
     # Constant jerk

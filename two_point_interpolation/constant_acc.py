@@ -51,6 +51,21 @@ def p_integ(p0: float, v0: float, a: float, dt: float) -> float:
     return p0 + v0 * dt + 0.5 * a * dt**2
 
 
+def normalize_angle(angle: float) -> float:
+    """
+    Normalize angle to range [-π, π].
+
+    Args:
+        angle: Input angle in radians
+
+    Returns:
+        Normalized angle in range [-π, π]
+    """
+    # Use atan2 to normalize: atan2(sin(angle), cos(angle)) returns angle in [-π, π]
+    result: float = np.arctan2(np.sin(angle), np.cos(angle))
+    return result
+
+
 class TwoPointInterpolation:
     """Two-point interpolation with symmetric or asymmetric
     acceleration/deceleration constraints."""
@@ -401,5 +416,104 @@ class TwoPointInterpolation:
             a = a_in
             v = v_integ(v_in, a_in, t_in)
             p = p_integ(p_in, v_in, a_in, t_in)
+
+        return p, v, a
+
+
+class TwoAngleInterpolation(TwoPointInterpolation):
+    """
+    Two-point interpolation specialized for angles with normalization.
+
+    This class automatically handles angle normalization and ensures
+    the shortest rotation path between two angles.
+
+    Example:
+        From 350° to 10° will rotate 20° counter-clockwise (shortest path)
+        rather than 340° clockwise.
+
+    Usage:
+        interp = TwoAngleInterpolation()
+        total_time = interp.calc_trajectory(p0=350*pi/180, pe=10*pi/180,
+                                            amax=1.0, vmax=10.0, dec_max=1.0)
+        p, v, a = interp.get_point(t)
+    """
+
+    def __init__(self) -> None:
+        """Initialize angle interpolation."""
+        super().__init__()
+
+    def init(self, p0: float, pe: float, amax: float, vmax: float,
+             t0: float = 0.0, v0: float = 0.0, ve: float = 0.0,
+             dec_max: Optional[float] = None) -> None:
+        """
+        Initialize trajectory parameters with angle normalization.
+
+        This method does NOT calculate the trajectory. Call calc_trajectory() separately.
+
+        Args:
+            p0: Initial angle (radians)
+            pe: Final angle (radians)
+            amax: Maximum acceleration (positive value)
+            vmax: Maximum velocity (positive value)
+            t0: Initial time (default: 0.0)
+            v0: Initial angular velocity (rad/s, default: 0.0)
+            ve: Final angular velocity (rad/s, default: 0.0)
+            dec_max: Maximum deceleration (positive value). If None, defaults to amax
+        """
+        # Normalize start and end angles to [-π, π]
+        p0_normalized = normalize_angle(p0)
+        pe_normalized = normalize_angle(pe)
+
+        # Calculate shortest angular difference
+        dp = normalize_angle(pe_normalized - p0_normalized)
+
+        # Set trajectory parameters using parent class methods
+        self.set_initial(t0, p0_normalized, v0)
+        self.set_point(p0_normalized + dp, ve)
+        self.set_constraints(amax, vmax, dec_max)
+
+    def calc_trajectory(  # type: ignore[override]
+            self, p0: float, pe: float, amax: float, vmax: float,
+            t0: float = 0.0, v0: float = 0.0, ve: float = 0.0,
+            dec_max: Optional[float] = None) -> float:
+        """
+        Calculate trajectory with angle normalization.
+
+        Args:
+            p0: Initial angle (radians)
+            pe: Final angle (radians)
+            amax: Maximum acceleration (positive value)
+            vmax: Maximum velocity (positive value)
+            t0: Initial time (default: 0.0)
+            v0: Initial angular velocity (rad/s, default: 0.0)
+            ve: Final angular velocity (rad/s, default: 0.0)
+            dec_max: Maximum deceleration (positive value). If None, defaults to amax
+
+        Returns:
+            Total trajectory time
+        """
+        # Initialize with angle normalization
+        self.init(p0, pe, amax, vmax, t0, v0, ve, dec_max)
+
+        # Calculate using parent class method
+        return super().calc_trajectory()
+
+    def get_point(self, t: float, normalize: bool = True) -> Tuple[float, float, float]:
+        """
+        Get trajectory point at time t with optional normalization.
+
+        Args:
+            t: Time value
+            normalize: If True, output angle is normalized to [-π, π] (default: True)
+
+        Returns:
+            Tuple of (angle, angular_velocity, angular_acceleration)
+        """
+        # Call parent class get_point which returns (p, v, a)
+        p, v, a = super().get_point(t)
+
+        # Normalize output angle if requested
+        if normalize:
+            p = normalize_angle(p)
 
         return p, v, a
