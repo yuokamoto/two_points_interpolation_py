@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2024-12-03
+
+### Added
+- **Angle Interpolation Support**: New `TwoAngleInterpolation` class for angle-aware trajectory planning
+  - Automatic angle normalization to [-π, π] range
+  - Shortest rotation path calculation (e.g., 350° to 10° goes through 0°, not 180°)
+  - `normalize_angle()` utility function for angle normalization using atan2
+  - Optional output normalization via `normalize_output` parameter in `get_point()`
+- **Comprehensive Angle Testing**: 6 new test cases covering various angle interpolation scenarios
+  - Shortest path verification with midpoint checks
+  - Full rotation (360°) handling
+  - Negative angle support
+  - Boundary crossing tests
+
+### Changed
+- **API Consistency**: Parameter naming standardized to match parent class
+  - Child class `init()` uses `acc_max` instead of `amax` for Liskov Substitution Principle compliance
+  - Removed redundant `__init__()` method following Python best practices
+
+### Fixed
+- **Type Safety**: Removed `calc_trajectory()` override that violated Liskov Substitution Principle
+  - Users now call `init()` followed by `calc_trajectory()` for angle interpolation
+  - Eliminates need for `# type: ignore[override]` annotations
+
 ## [1.2.1] - 2024-11-30
 
 ### Fixed
