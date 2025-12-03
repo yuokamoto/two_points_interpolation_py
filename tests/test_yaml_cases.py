@@ -453,9 +453,9 @@ class TwoAngleInterpolationTest(unittest.TestCase):
         p0_rad = p0_deg * np.pi / 180.0
         pe_rad = pe_deg * np.pi / 180.0
 
-        # Calculate trajectory
-        t_total = interp.calc_trajectory(p0=p0_rad, pe=pe_rad,
-                                        amax=1.0, vmax=10.0, dec_max=1.0)
+        # Initialize and calculate trajectory
+        interp.init(p0=p0_rad, pe=pe_rad, amax=1.0, vmax=10.0, dec_max=1.0)
+        t_total = interp.calc_trajectory()
 
         # Check start and end points
         p0_result, v0, a0 = interp.get_point(0.0)
@@ -473,7 +473,7 @@ class TwoAngleInterpolationTest(unittest.TestCase):
 
         # Check midpoint to verify shortest path
         t_mid = t_total / 2.0
-        p_mid, v_mid, a_mid = interp.get_point(t_mid, normalize=True)
+        p_mid, v_mid, a_mid = interp.get_point(t_mid, normalize_output=True)
 
         # Verify midpoint is in expected range
         min_deg, max_deg = expected_midpoint_range_deg
@@ -543,8 +543,8 @@ class TwoAngleInterpolationTest(unittest.TestCase):
         """Test that 360° difference results in no movement (shortest path is 0°)."""
         interp = TwoAngleInterpolation()
 
-        t_total = interp.calc_trajectory(p0=0.0, pe=2*np.pi,
-                                        amax=1.0, vmax=10.0, dec_max=1.0)
+        interp.init(p0=0.0, pe=2*np.pi, amax=1.0, vmax=10.0, dec_max=1.0)
+        t_total = interp.calc_trajectory()
 
         p0, v0, a0 = interp.get_point(0.0)
         pe, ve, ae = interp.get_point(t_total)
@@ -557,26 +557,26 @@ class TwoAngleInterpolationTest(unittest.TestCase):
         self.assertLess(t_total, 0.01, msg="Total time should be near zero for no movement")
 
     def test_normalize_parameter(self):
-        """Test that normalize parameter works correctly in get_point."""
+        """Test that normalize_output parameter works correctly in get_point."""
         interp = TwoAngleInterpolation()
 
         # Setup a trajectory that crosses boundaries
         angle_350 = 350.0 * np.pi / 180.0
         angle_10 = 10.0 * np.pi / 180.0
 
-        t_total = interp.calc_trajectory(p0=angle_350, pe=angle_10,
-                                        amax=1.0, vmax=10.0, dec_max=1.0)
+        interp.init(p0=angle_350, pe=angle_10, amax=1.0, vmax=10.0, dec_max=1.0)
+        t_total = interp.calc_trajectory()
 
         # Get point at middle of trajectory with normalization
         t_mid = t_total / 2.0
-        p_normalized, v, a = interp.get_point(t_mid, normalize=True)
+        p_normalized, v, a = interp.get_point(t_mid, normalize_output=True)
 
         # Angle should be in [-π, π] range
         self.assertGreaterEqual(p_normalized, -np.pi)
         self.assertLessEqual(p_normalized, np.pi)
 
         # Get same point without normalization
-        p_raw, v2, a2 = interp.get_point(t_mid, normalize=False)
+        p_raw, v2, a2 = interp.get_point(t_mid, normalize_output=False)
 
         # Velocity and acceleration should be identical
         self.assertAlmostEqual(v, v2, places=10)

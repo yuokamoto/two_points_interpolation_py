@@ -433,9 +433,10 @@ class TwoAngleInterpolation(TwoPointInterpolation):
 
     Usage:
         interp = TwoAngleInterpolation()
-        total_time = interp.calc_trajectory(p0=350*pi/180, pe=10*pi/180,
-                                            amax=1.0, vmax=10.0, dec_max=1.0)
-        p, v, a = interp.get_point(t)
+        interp.init(p0=350*np.pi/180, pe=10*np.pi/180,
+                    amax=1.0, vmax=10.0, dec_max=1.0)
+        total_time = interp.calc_trajectory()
+        p, v, a = interp.get_point(t, normalize_output=True)
     """
 
     def __init__(self) -> None:
@@ -472,39 +473,13 @@ class TwoAngleInterpolation(TwoPointInterpolation):
         self.set_point(p0_normalized + dp, ve)
         self.set_constraints(amax, vmax, dec_max)
 
-    def calc_trajectory(  # type: ignore[override]
-            self, p0: float, pe: float, amax: float, vmax: float,
-            t0: float = 0.0, v0: float = 0.0, ve: float = 0.0,
-            dec_max: Optional[float] = None) -> float:
-        """
-        Calculate trajectory with angle normalization.
-
-        Args:
-            p0: Initial angle (radians)
-            pe: Final angle (radians)
-            amax: Maximum acceleration (positive value)
-            vmax: Maximum velocity (positive value)
-            t0: Initial time (default: 0.0)
-            v0: Initial angular velocity (rad/s, default: 0.0)
-            ve: Final angular velocity (rad/s, default: 0.0)
-            dec_max: Maximum deceleration (positive value). If None, defaults to amax
-
-        Returns:
-            Total trajectory time
-        """
-        # Initialize with angle normalization
-        self.init(p0, pe, amax, vmax, t0, v0, ve, dec_max)
-
-        # Calculate using parent class method
-        return super().calc_trajectory()
-
-    def get_point(self, t: float, normalize: bool = True) -> Tuple[float, float, float]:
+    def get_point(self, t: float, normalize_output: bool = True) -> Tuple[float, float, float]:
         """
         Get trajectory point at time t with optional normalization.
 
         Args:
             t: Time value
-            normalize: If True, output angle is normalized to [-π, π] (default: True)
+            normalize_output: If True, output angle is normalized to [-π, π] (default: True)
 
         Returns:
             Tuple of (angle, angular_velocity, angular_acceleration)
@@ -513,7 +488,7 @@ class TwoAngleInterpolation(TwoPointInterpolation):
         p, v, a = super().get_point(t)
 
         # Normalize output angle if requested
-        if normalize:
+        if normalize_output:
             p = normalize_angle(p)
 
         return p, v, a
