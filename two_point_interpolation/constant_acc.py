@@ -77,6 +77,8 @@ class TwoPointInterpolation:
         self.trajectory_calced = False
         # Initialize attributes for type checker
         self.t0: float = 0.0
+        self.te: float = 0.0
+        self.duration: float = 0.0
         self.p0: float = 0.0
         self.v0: float = 0.0
         self.pe: float = 0.0
@@ -240,6 +242,8 @@ class TwoPointInterpolation:
                 self.p = [p0]
                 self.case = -1  # Special case for no movement
                 self.trajectory_calced = True
+                self.duration = 0.0
+                self.te = t0  # End time equals start time (no movement)
                 return 0.0
             else:
                 raise ValueError(
@@ -372,7 +376,38 @@ class TwoPointInterpolation:
             self.p.append(p2)
 
         self.trajectory_calced = True
-        return sum(self.dt)
+        duration = sum(self.dt)
+        self.duration = duration
+        self.te = self.t0 + duration
+        return duration
+
+    def get_duration(self) -> float:
+        """
+        Get the total duration of the trajectory.
+
+        Returns:
+            Total duration (sum of all time segments)
+
+        Raises:
+            RuntimeError: If trajectory has not been calculated yet
+        """
+        if not self.trajectory_calced:
+            raise RuntimeError("Trajectory not calculated yet. Call calc_trajectory() first.")
+        return self.duration
+
+    def get_end_time(self) -> float:
+        """
+        Get the end time of the trajectory.
+
+        Returns:
+            End time (t0 + duration)
+
+        Raises:
+            RuntimeError: If trajectory has not been calculated yet
+        """
+        if not self.trajectory_calced:
+            raise RuntimeError("Trajectory not calculated yet. Call calc_trajectory() first.")
+        return self.te
 
     def get_point(self, t: float) -> Tuple[float, float, float]:
         '''get pos, vel, acc depends on time t'''

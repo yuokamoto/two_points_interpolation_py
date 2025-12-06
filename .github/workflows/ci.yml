@@ -49,7 +49,7 @@ jobs:
 
     - name: Run Python tests
       run: |
-        pytest tests/test_yaml_cases.py -v --tb=short --cov=two_point_interpolation --cov-report=term-missing
+        pytest tests/ -v --tb=short --cov=two_point_interpolation --cov-report=term-missing
 
     - name: Test visualization system
       run: |

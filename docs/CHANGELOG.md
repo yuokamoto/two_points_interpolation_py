@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2024-12-06
+
+### Added
+- **Getter Methods**: New accessor methods for trajectory timing information
+  - `get_duration()`: Returns total trajectory duration
+  - `get_end_time()`: Returns trajectory end time (t0 + duration)
+  - Both methods raise `RuntimeError` if called before trajectory calculation
+  - Available in both Python and C++ implementations
+
+### Changed
+- **Internal Optimization**: Duration and end time now cached as member variables
+  - `duration` and `te` stored during `calc_trajectory()` for O(1) access
+  - Eliminates repeated calculation overhead in getter methods
+  - No API changes, fully backward compatible
+- **Test Reorganization**: Improved test structure for better maintainability
+  - Created dedicated `test_angle_interpolation.py` for angle interpolation tests
+  - Reduced `test_getters.py` to focus on edge cases and error handling
+  - Integrated getter validation into YAML-based test suite
+  - Total test count reduced from 30 to 23 while maintaining comprehensive coverage
+
+### Performance
+- **Getter Methods**: O(1) time complexity (previously O(n) from summing dt array)
+- **Memory**: Minimal overhead (2 double variables: ~16 bytes)
+
 ## [1.3.0] - 2024-12-03
 
 ### Added

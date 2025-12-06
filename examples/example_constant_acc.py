@@ -34,11 +34,11 @@ def generate_case0_example(show=True, save=False):
 
     print(f"Initial time: {t0:.3f} s")
     print(f"Duration: {total_time:.3f} s")
-    print(f"End time: {t0 + total_time:.3f} s")
+    print(f"End time: {tpi.get_end_time():.3f} s")
 
     # Sample trajectory
     dt = 0.01
-    t_array = np.arange(t0, t0 + total_time, dt)
+    t_array = np.arange(t0, tpi.get_end_time(), dt)
     p_array = []
     v_array = []
     a_array = []
@@ -113,7 +113,7 @@ def generate_case1_example(show=True, save=False):
 
     # Sample trajectory
     dt = 0.01
-    t_array = np.arange(t0, t0 + total_time, dt)
+    t_array = np.arange(t0, tpi.get_end_time(), dt)
     p_array = []
     v_array = []
     a_array = []
