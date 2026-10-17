@@ -100,9 +100,11 @@ Up to 1.3.1 the implementation substituted `v1 = v0 + acc*t1` into the distance
 equation and solved the resulting quadratic in `t1`, taking the smaller positive
 root. Because the distance equation only contains `v1²`, the quadratic's two roots
 are `v1 = +|v1|` and `v1 = -|v1|`. When `v0` points toward `pe` (or is zero) only
-the correct one is positive. When `v0` points away from `pe` both are positive, and
-the smaller one could be `v1 = -|v1|`: the acceleration phase ended still moving
-away, the deceleration then drove further away, and `pe` was never reached.
+the correct one is positive. When `v0` points away from `pe` over a short enough
+distance (`(v0² - ve²)/(2*dmax) > |dp|`) both are positive, and the smaller one is
+always `v1 = -|v1|`, because `t1 = (v1 - v0)/acc` grows with `v1` along the
+direction of travel: the acceleration phase ended still moving away, the
+deceleration then drove further away, and `pe` was never reached.
 Solving for `v1` directly and fixing its sign removes the spurious root.
 
 ## Special Cases

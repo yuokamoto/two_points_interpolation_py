@@ -12,10 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   trajectory that never reaches `pe` when `v0` points away from it.
   - The acceleration time was taken as the smaller positive root of a quadratic whose
     two roots correspond to a peak velocity `v1` of `+|v1|` and `-|v1|`. When `v0`
-    points away from `pe` both roots are positive, and the smaller one can be the
-    `-|v1|` root: the acceleration phase ends still moving away, and the deceleration
-    phase drives further away. `get_point()` clamps to `pe` at `te`, so the result
-    only showed as a jump at the end.
+    points away from `pe` over a short enough distance (`(v0² - ve²)/(2*dmax) > |dp|`),
+    both roots are positive, and the smaller one is always the `-|v1|` root, since
+    `t1 = (v1 - v0)/acc` grows with `v1` along the direction of travel: the
+    acceleration phase ends still moving away, and the deceleration phase drives
+    further away. `get_point()` clamps to `pe` at `te`, so the result only showed as
+    a jump at the end.
   - `v1` is now computed directly from the distance equation and takes its sign from
     the direction of travel. Results are unchanged wherever the old root was correct.
   - An acceleration-only arrival (`ve` exactly the speed reached by accelerating
@@ -29,14 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Behaviour change**: inputs that used to return a wrong trajectory now raise
   `ValueError`. These are requests whose end velocity `ve` is faster, toward `pe`,
   than any speed reachable within the distance without first moving away from `pe`;
-  the trajectory returned for them
-  never ended at `pe`. Inputs that produced a correct trajectory are unaffected.
+  the trajectory returned for them never ended at `pe`. Inputs that produced a
+  correct trajectory are unaffected.
 - Error messages name the actual cause: "Insufficient distance ..." when the body
   moves toward `pe` too fast to slow down to `ve`, and "End velocity unreachable
   without first moving away from the target ..." with the highest speed reachable
-  over the distance. A profile that backs away or overshoots is not built (#9). The old messages
-  referring to a discriminant or to "no positive time solution" are gone, since the
-  quadratic is no longer solved.
+  over the distance. A profile that backs away or overshoots is not built (#9).
+  The old messages referring to a discriminant or to "no positive time solution"
+  are gone, since the quadratic is no longer solved.
 
 ### Docs
 - `CONSTANT_ACC_DERIVATION.md` derives the peak velocity directly and explains why

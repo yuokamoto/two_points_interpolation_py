@@ -258,6 +258,8 @@ class TwoPointInterpolation:
                 self.te = t0  # End time equals start time (no movement)
                 return 0.0
             else:
+                # TODO(#9): reverse profile -- move away and come back to change speed
+                # without changing position.
                 raise ValueError(
                     "Changing velocity at the same position (dp=0, dv!=0) is not supported. "
                     "This library is designed for position interpolation.")
