@@ -21,7 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - An acceleration-only arrival (`ve` exactly the speed reached by accelerating
     over the whole distance) is accepted despite square-root rounding: a peak within
     a relative `1e-9` of `ve` is snapped onto it, so the deceleration phase has zero
-    length.
+    length. The snap applies only when accelerating from `v0` to `ve` covers `|dp|`
+    (also within a relative `1e-9`): a peak close to `ve` alone, e.g. with a tiny
+    `dec_max`, is not an acceleration-only arrival and `ve` stays unreachable.
 
 ### Changed
 - **Behaviour change**: inputs that used to return a wrong trajectory now raise

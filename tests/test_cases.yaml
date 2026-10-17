@@ -989,3 +989,43 @@ error_tests:
         - "is 0.7416, but ve 1.0000"
     notes: |
       Highest reachable speed sqrt(v0^2 + 2 * acc_max * |dp|) = 0.742 m/s.
+
+  - name: test_end_velocity_unreachable_peak_near_ve
+    description: "Peak close to ve without being an acceleration-only arrival"
+    test_type: error
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 1.0e-9
+      vmax: 3.0
+      v0: 0.0
+      ve: 2.0
+    expected:
+      error: ValueError
+      error_contains:
+        - "End velocity unreachable"
+        - "is 1.4142, but ve 2.0000"
+    notes: |
+      A tiny dec_max puts the computed peak at 1.9999999995, within rounding of
+      ve, but accelerating from 0 to 2 at acc_max = 1 needs 2 m, not 1 m. The
+      peak must only be snapped onto ve when the acceleration-only distance
+      matches |dp|; otherwise the trajectory ended at p = 2 behind the clamp.
+
+  - name: test_end_velocity_unreachable_small_scale
+    description: "Unreachable ve at a very small scale"
+    test_type: error
+    params:
+      p0: 0.0
+      pe: 0.1
+      acc_max: 1.0e-18
+      dec_max: 1.0e-18
+      vmax: 1.0e-8
+      v0: 0.0
+      ve: 1.0e-9
+    expected:
+      error: ValueError
+      error_contains: "End velocity unreachable"
+    notes: |
+      The rounding tolerance is purely relative: an absolute floor would treat
+      this peak as equal to ve, and the trajectory ended at p = 0.5.
