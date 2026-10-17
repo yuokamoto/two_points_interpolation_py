@@ -194,8 +194,11 @@ class TwoPointInterpolation:
                 f"({percentage:.2f}%). "
                 f"Consider reducing initial velocity or increasing distance."
             )
-        # Boundary: the body arrives exactly at the deceleration distance (no time
-        # left to accelerate). Not reachable with a positive acceleration phase.
+        # Defensive fallback; not reached. calc_trajectory() only asks for this
+        # context when t1 <= 0, which happens exactly when the body moves toward pe
+        # and (v0^2 - ve^2) / (2 * dmax) >= |dp|: the two branches above cover that
+        # (the exact-equality boundary falls in the tolerance branch). Kept so that
+        # a future caller with another condition still gets a ValueError.
         raise ValueError(
             f"Insufficient distance for trajectory planning: no time is left for the "
             f"acceleration phase. Distance: {abs(dp):.4f}, v0: {v0:.4f}, ve: {ve:.4f}, "
