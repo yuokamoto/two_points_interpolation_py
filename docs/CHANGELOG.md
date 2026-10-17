@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - Unreleased
+
+### Fixed
+- **Initial velocity away from the target**: `calc_trajectory()` could return a
+  trajectory that never reaches `pe` when `v0` points away from it.
+  - The acceleration time was taken as the smaller positive root of a quadratic whose
+    two roots correspond to a peak velocity `v1` of `+|v1|` and `-|v1|`. When `v0`
+    points away from `pe` both roots are positive, and the smaller one can be the
+    `-|v1|` root: the acceleration phase ends still moving away, and the deceleration
+    phase drives further away. `get_point()` clamps to `pe` at `te`, so the result
+    only showed as a jump at the end.
+  - `v1` is now computed directly from the distance equation and takes its sign from
+    the direction of travel. Results are unchanged wherever the old root was correct.
+  - Requests whose end velocity `ve` cannot be reached within the distance now raise
+    `ValueError` instead of returning a trajectory that misses `pe`.
+
 ## [1.3.1] - 2024-12-06
 
 ### Added

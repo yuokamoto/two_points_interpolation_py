@@ -260,43 +260,32 @@ class TwoPointInterpolation:
         acc = self.amax_accel * sign
         dec = self.amax_decel * sign
 
-        # Calculate coefficients for quadratic equation: a_coeff*t1^2 + b_coeff*t1 + c_coeff = 0
-        # where t1 is the duration of acceleration phase
-        ratio = acc / dec
-        a_coeff = 0.5 * acc * (1 + ratio)
-        b_coeff = v0 * (1 + ratio)
-        c_coeff = -dp + (v0**2 - ve**2) / (2 * dec)
+        # Peak velocity v1 at the end of the acceleration phase, from the distance
+        # covered by the two phases (accelerate v0 -> v1, decelerate v1 -> ve):
+        #
+        #   |dp| = (v1^2 - v0^2) / (2 * amax_accel) + (v1^2 - ve^2) / (2 * amax_decel)
+        #
+        # This fixes |v1| but not its sign. Solving the equivalent quadratic in t1
+        # instead yields two roots, v1 = +|v1| and v1 = -|v1|; the second ends the
+        # acceleration phase still moving away from pe, and its "deceleration" then
+        # drives further away, so the trajectory never reaches pe. Both roots are
+        # positive exactly when v0 points away from pe, so the root has to be chosen
+        # by direction, not by size: v1 points toward pe.
+        a_mag = self.amax_accel
+        d_mag = self.amax_decel
+        v1_sq = (np.fabs(dp) + v0**2 / (2 * a_mag) + ve**2 / (2 * d_mag)) / (
+            1 / (2 * a_mag) + 1 / (2 * d_mag))
+        v1 = sign * np.sqrt(v1_sq)
 
-        # Calculate discriminant
-        discriminant = b_coeff**2 - 4 * a_coeff * c_coeff
-
-        # Check for invalid trajectory before attempting to solve
-        # Early-exit pattern: Check discriminant <= 0 first for better error reporting
-        # (original logic had discriminant > 0, but inverting provides clearer error messages)
-        if discriminant <= 0:
-            # Discriminant <= 0: no valid solution
-            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'discriminant')
-
-        # Valid solution exists (discriminant > 0)
-        # Solve for t1 (acceleration duration)
-        # Quadratic equation has two solutions, choose the positive one
-        sqrt_disc = np.sqrt(discriminant)
-        dt01_plus = (-b_coeff + sqrt_disc) / (2 * a_coeff)
-        dt01_minus = (-b_coeff - sqrt_disc) / (2 * a_coeff)
-
-        # Choose the positive solution
-        if dt01_plus > 0 and dt01_minus > 0:
-            # Both positive: choose the smaller one (more efficient)
-            dt01 = min(dt01_plus, dt01_minus)
-        elif dt01_plus > 0:
-            dt01 = dt01_plus
-        elif dt01_minus > 0:
-            dt01 = dt01_minus
-        else:
-            # No positive solution: check if this is due to insufficient deceleration distance
+        # Acceleration phase duration. Negative when the body already moves toward pe
+        # faster than v1, i.e. it cannot slow down to ve within |dp|.
+        dt01 = (v1 - v0) / acc
+        if dt01 <= 0:
             self._raise_deceleration_error(v0, ve, dp, dec, sign, 'no_positive_solution')
-
-        v1 = v_integ(v0, acc, dt01)
+        # The deceleration phase must slow v1 down to ve; if ve is faster than v1 in
+        # the direction of travel, ve cannot be reached within |dp|.
+        if sign * (v1 - ve) < 0:
+            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'discriminant')
 
         if np.fabs(v1) < vmax:
             # Case 0: vmax not reached

@@ -79,20 +79,40 @@ c_coeff = -dp + (v0² - ve²) / (2 * dec)
 
 > **Note**: For detailed step-by-step algebraic derivation of these coefficients, see [QUADRATIC_COEFFICIENTS_DERIVATION.md](QUADRATIC_COEFFICIENTS_DERIVATION.md).
 
-### Step 4: Quadratic Formula
+### Step 4: Pick the root by direction, not by size
+
+The quadratic has two roots because the position equation only contains `v1²`:
+written in terms of the peak velocity it reads
 
 ```
-discriminant = b_coeff² - 4*a_coeff*c_coeff
-
-If discriminant > 0:
-    t1 = (-b_coeff + √discriminant) / (2*a_coeff)
-    v1 = v0 + acc*t1
-
-    If |v1| < vmax:
-        Use Case 0 (two phases)
-    Else:
-        Use Case 1 (three phases)
+|dp| = (v1² - v0²) / (2*amax) + (v1² - ve²) / (2*dmax)
 ```
+
+so `v1 = +|v1|` and `v1 = -|v1|` both satisfy it. Only the root whose `v1` points
+toward `pe` is a trajectory: with the other, the acceleration phase ends still
+moving away from `pe`, and the following deceleration drives further away, so the
+end point is never reached. When `v0` points toward `pe` (or is zero) only one root
+is positive, but when `v0` points away from `pe` both are, so the smaller positive
+root is not necessarily the right one.
+
+The implementation therefore solves for `v1` directly and takes its sign from the
+direction of travel (since 1.3.2):
+
+```
+v1 = sign * √( (|dp| + v0²/(2*amax) + ve²/(2*dmax)) / (1/(2*amax) + 1/(2*dmax)) )
+t1 = (v1 - v0) / acc
+
+t1 <= 0             -> moving toward pe too fast to slow down to ve: infeasible
+sign*(v1 - ve) < 0  -> ve cannot be reached within |dp|: infeasible
+
+If |v1| < vmax:
+    Use Case 0 (two phases)
+Else:
+    Use Case 1 (three phases)
+```
+
+This is the quadratic's valid root, so it agrees with the quadratic formula wherever
+that one picked the right root.
 
 ## Special Cases
 
