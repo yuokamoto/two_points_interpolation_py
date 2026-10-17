@@ -154,6 +154,13 @@ Trajectory when the peak velocity is below vmax. Shows two phases: acceleration 
 
 Trajectory when vmax is reached. Shows three phases: acceleration, constant velocity, and deceleration.
 
+### Initial velocity away from the target
+![Initial velocity away from the target](https://raw.githubusercontent.com/yuokamoto/two_points_interpolation_py/main/examples/images/acc_constant_2.png)
+
+**Parameters**: `t0=0, p0=0, pe=10, acc_max=2.0, dec_max=3.0, vmax=5.0, v0=-3.0, ve=0`
+
+The body starts moving away from the target. The first phase accelerates toward the target, so it slows down, turns back at the marked point and speeds up toward the target; the trajectory then cruises at vmax and decelerates onto it. The slowing down before the turn is part of the acceleration phase, so it is bounded by `acc_max`, not `dec_max`.
+
 ## Documentation
 
 - **Getting Started**: This README

@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     only showed as a jump at the end.
   - `v1` is now computed directly from the distance equation and takes its sign from
     the direction of travel. Results are unchanged wherever the old root was correct.
+  - An acceleration-only arrival (`ve` exactly the speed reached by accelerating
+    over the whole distance) is accepted despite square-root rounding: a peak within
+    a relative `1e-9` of `ve` is snapped onto it, so the deceleration phase has zero
+    length.
 
 ### Changed
 - **Behaviour change**: inputs that used to return a wrong trajectory now raise
@@ -34,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CONSTANT_ACC_DERIVATION.md` derives the peak velocity directly and explains why
   the former quadratic in the acceleration time produced a spurious root.
   `QUADRATIC_COEFFICIENTS_DERIVATION.md`, which derived that quadratic, is removed.
+- README: a third example plot, an initial velocity away from the target, generated
+  by `examples/example_constant_acc.py --save` as `examples/images/acc_constant_2.png`.
 
 ## [1.3.1] - 2024-12-06
 

@@ -40,6 +40,10 @@ dmax: maximum deceleration (absolute value)
 # Tolerance threshold for deceleration distance comparison (2%)
 DECEL_DISTANCE_TOLERANCE = 0.02
 
+# Relative tolerance within which a computed peak velocity counts as equal to ve
+# (an acceleration-only arrival), absorbing square-root rounding.
+PEAK_VELOCITY_REL_TOL = 1e-9
+
 
 def v_integ(v0: float, a: float, dt: float) -> float:
     """Integrate velocity from acceleration."""
@@ -277,6 +281,13 @@ class TwoPointInterpolation:
         v1_sq = (np.fabs(dp) + v0**2 / (2 * a_mag) + ve**2 / (2 * d_mag)) / (
             1 / (2 * a_mag) + 1 / (2 * d_mag))
         v1 = sign * np.sqrt(v1_sq)
+
+        # An acceleration-only arrival has v1 == ve exactly in real arithmetic, but
+        # the square root can land a rounding error below ve. Snap a peak that is
+        # within rounding of ve onto it, so the deceleration phase has zero length
+        # instead of the trajectory being refused as unreachable.
+        if 0 < sign * (ve - v1) <= PEAK_VELOCITY_REL_TOL * max(np.fabs(v1), np.fabs(ve), 1.0):
+            v1 = ve
 
         # Acceleration phase duration. Not positive when the body already moves toward
         # pe at least as fast as v1, i.e. it cannot slow down to ve within |dp|.

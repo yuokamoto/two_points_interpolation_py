@@ -188,3 +188,22 @@ def test_an_angle_turning_away_from_its_target_still_reaches_it():
     p, v, _ = tpi.get_point(tpi.get_end_time() - EPS)
     assert p == pytest.approx(pe, abs=1e-6)
     assert v == pytest.approx(0.0, abs=1e-6)
+
+
+@pytest.mark.parametrize("direction", [1.0, -1.0])
+@pytest.mark.parametrize("v0_toward", [0.0, -1.0, 0.5])
+@pytest.mark.parametrize("dp_mag, acc", [(15.0, 0.3), (1.0, 2.0), (7.3, 0.7)])
+def test_an_acceleration_only_arrival_is_accepted(direction, v0_toward, dp_mag, acc):
+    """ve exactly the speed reached by accelerating over the whole distance:
+    the square root can land a rounding error below ve, which must not count
+    as unreachable. v0_toward < 0 starts moving away from the target."""
+    v0 = v0_toward * direction
+    ve = direction * np.sqrt(v0_toward**2 + 2 * acc * dp_mag)
+    tpi = _build(0.0, direction * dp_mag, v0, acc, 0.5, 100.0, ve)
+    _assert_reaches_target(tpi, direction * dp_mag, ve)
+    assert tpi.dt[-1] == pytest.approx(0.0, abs=1e-6)  # no deceleration phase
+
+
+def test_the_reviewed_acceleration_only_case():
+    tpi = _build(0.0, 15.0, 0.0, 0.3, 0.5, 5.0, 3.0)
+    _assert_reaches_target(tpi, 15.0, 3.0)
