@@ -185,6 +185,15 @@ The `constant_jerk` module requires significant improvements:
 - Add comprehensive test suite for `constant_jerk` module
 - Verify mathematical correctness of jerk-based trajectories
 
+## Releasing
+
+Releases are published to PyPI by `.github/workflows/release.yml` through Trusted Publishing (no API token):
+
+1. Set the version in `pyproject.toml` and `two_point_interpolation/__init__.py`, and date its section in `docs/CHANGELOG.md` (`## [X.Y.Z] - YYYY-MM-DD`).
+2. Push a tag `vX.Y.Z`. The workflow checks that the tag matches both version strings, runs the tests, builds and smoke-tests the wheel, publishes it to PyPI and creates the GitHub Release from the changelog section.
+
+An existing tag can be released again from the Actions tab (`Release` → `Run workflow`, with the version). PyPI rejects re-uploading a version that is already published.
+
 ## Requirements
 
 - Python 3.6+
