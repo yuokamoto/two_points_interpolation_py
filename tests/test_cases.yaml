@@ -624,6 +624,238 @@ overspeed_tests:
       warning: false
       phase1_acceleration: 2.0  # Should accelerate normally
 
+
+# Initial velocity pointing away from the target, inside the regime where the
+# acceleration-time quadratic of 1.3.1 had two positive roots:
+#   v0 points away from pe  and  (v0^2 - ve^2) / (2 * dec_max) > |dp|
+# 1.3.1 took the smaller root, which ends the acceleration phase still moving
+# away, so the trajectory never reached pe. The *_backward_* cases above also
+# start moving away, but outside this regime (|dp| is large against v0), where
+# only one root is positive.
+initial_velocity_away_tests:
+  - name: test_away_reported_case
+    description: "v0 away from the target, the reported case"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 3.0
+      v0: -2.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time: 5.464
+      v1: 1.732051
+      p_min: -2.0
+    notes: |
+      Moving at -2 m/s while the target is 1 m ahead. The body stops after
+      v0^2 / (2 * acc_max) = 2 m and comes back. Up to 1.3.1 the acceleration phase
+      ended at v1 = -1.73 (still moving away) and the trajectory ran off to p = -5.
+
+  - name: test_away_decel_stronger
+    description: "v0 away from the target, dec_max > acc_max"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 2.0
+      vmax: 4.0
+      v0: -3.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time: 7.062
+      v1: 2.708013
+      p_min: -4.5
+
+  - name: test_away_accel_stronger
+    description: "v0 away from the target, acc_max > dec_max"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 2.0
+      dec_max: 1.0
+      vmax: 3.0
+      v0: -2.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time: 3.449
+      v1: 1.632993
+      p_min: -1.0
+
+  - name: test_away_vmax_reached
+    description: "v0 away from the target, vmax reached on the way back"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 1.5
+      v0: -2.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time: 5.5
+      v1: 1.5
+      p_min: -2.0
+    notes: |
+      In the regime too, but 1.3.1 got case 1 right: its vmax branch replaces v1
+      with +vmax regardless of the root. Kept so both branches are covered.
+
+  - name: test_away_above_vmax
+    description: "v0 away from the target and above vmax"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 1.5
+      v0: -4.0
+      ve: 0.0
+    expected:
+      case: 1
+      total_time: 11.5
+      v1: 1.5
+      p_min: -8.0
+
+  - name: test_away_end_velocity
+    description: "v0 away from the target, non-zero ve"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 3.0
+      v0: -2.0
+      ve: 0.5
+    expected:
+      case: 0
+      total_time: 5.036
+      v1: 1.767767
+      p_min: -2.0
+
+  - name: test_away_asymmetric_vmax_end_velocity
+    description: "v0 away, dec_max > acc_max, vmax reached, non-zero ve"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 2.0
+      vmax: 1.5
+      v0: -3.0
+      ve: 0.5
+    expected:
+      case: 1
+      total_time: 7.583
+      v1: 1.5
+      p_min: -4.5
+
+  - name: test_away_backward
+    description: "v0 away from a target behind (negative direction)"
+    params:
+      p0: 0.0
+      pe: -1.0
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 3.0
+      v0: 2.0
+      ve: 0.0
+    expected:
+      case: 0
+      total_time: 5.464
+      v1: -1.732051
+      p_max: 2.0
+
+  - name: test_away_backward_vmax_end_velocity
+    description: "v0 away from a target behind, vmax reached, non-zero ve"
+    params:
+      p0: 0.0
+      pe: -1.0
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 1.5
+      v0: 2.0
+      ve: -0.5
+    expected:
+      case: 1
+      total_time: 5.083
+      v1: -1.5
+      p_max: 2.0
+
+# End-velocity edge cases: ve pointing away from the target, and ve exactly the
+# speed reached by accelerating over the whole distance.
+end_velocity_tests:
+  - name: test_end_velocity_away_overshoots
+    description: "ve pointing away from the target: pass pe and come back"
+    params:
+      p0: 0.0
+      pe: 1.0
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 3.0
+      v0: 0.0
+      ve: -0.5
+    expected:
+      case: 0
+      total_time: 2.621
+      v1: 1.06066
+      p_max: 1.125
+    notes: |
+      The deceleration phase carries on through zero: the body passes pe, turns
+      and arrives back at pe moving away at -0.5 m/s.
+
+  - name: test_acceleration_only_arrival
+    description: "ve exactly the speed reached by accelerating over the whole distance"
+    params:
+      p0: 0.0
+      pe: 15.0
+      acc_max: 0.3
+      dec_max: 0.5
+      vmax: 5.0
+      v0: 0.0
+      ve: 3.0
+    expected:
+      case: 0
+      total_time: 10.0
+      final_phase_duration: 0.0
+    notes: |
+      sqrt(2 * 0.3 * 15) = 3 in real arithmetic, but the computed peak is
+      2.9999999999999996. A peak within rounding of ve is snapped onto it, so the
+      deceleration phase has zero length instead of ve counting as unreachable.
+
+  - name: test_acceleration_only_arrival_moving_away
+    description: "Acceleration-only arrival starting away from the target"
+    params:
+      p0: 0.0
+      pe: 15.0
+      acc_max: 0.3
+      dec_max: 0.5
+      vmax: 5.0
+      v0: -1.0
+      ve: 3.1622776601683795
+    expected:
+      case: 0
+      total_time: 13.874
+      final_phase_duration: 0.0
+      p_min: -1.667
+
+  - name: test_acceleration_only_arrival_backward
+    description: "Acceleration-only arrival in the negative direction"
+    params:
+      p0: 0.0
+      pe: -15.0
+      acc_max: 0.3
+      dec_max: 0.5
+      vmax: 5.0
+      v0: 0.0
+      ve: -3.0
+    expected:
+      case: 0
+      total_time: 10.0
+      final_phase_duration: 0.0
+
 # Error condition tests
 error_tests:
   - name: test_calc_trajectory_without_setup
@@ -718,3 +950,42 @@ error_tests:
         - "No positive time solution"
     notes: |
       High speed with tight constraints creates infeasible trajectory.
+
+  - name: test_end_velocity_unreachable_from_rest
+    description: "ve faster than any speed reachable within the distance"
+    test_type: error
+    params:
+      p0: 0.0
+      pe: 0.1
+      acc_max: 1.0
+      dec_max: 1.0
+      vmax: 5.0
+      v0: 0.0
+      ve: 2.0
+    expected:
+      error: ValueError
+      error_contains:
+        - "End velocity unreachable"
+        - "is 0.4472, but ve 2.0000"
+    notes: |
+      Accelerating over the whole 0.1 m reaches only sqrt(2 * 1 * 0.1) = 0.447 m/s.
+      1.3.1 returned a trajectory that did not end at pe.
+
+  - name: test_end_velocity_unreachable_moving_away
+    description: "ve unreachable when starting away from the target"
+    test_type: error
+    params:
+      p0: 0.0
+      pe: 0.3
+      acc_max: 0.5
+      dec_max: 0.5
+      vmax: 1.5
+      v0: -0.5
+      ve: 1.0
+    expected:
+      error: ValueError
+      error_contains:
+        - "End velocity unreachable"
+        - "is 0.7416, but ve 1.0000"
+    notes: |
+      Highest reachable speed sqrt(v0^2 + 2 * acc_max * |dp|) = 0.742 m/s.

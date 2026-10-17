@@ -41,6 +41,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README: a third example plot, an initial velocity away from the target, generated
   by `examples/example_constant_acc.py --save` as `examples/images/acc_constant_2.png`.
 
+### Tests
+- New YAML groups `initial_velocity_away_tests` (v0 away from the target inside the
+  regime where the old quadratic had two positive roots, both directions, case 0 and
+  case 1) and `end_velocity_tests` (ve away from the target, acceleration-only
+  arrivals), plus two unreachable-`ve` error cases.
+- The YAML runner now checks the state just before `te` for every trajectory case;
+  `get_point()` clamps to `(pe, ve)` at `te`, which hid trajectories that did not
+  arrive there. New optional expected keys: `v1`, `final_phase_duration`, `p_min`,
+  `p_max`.
+- `tests/test_trajectory_properties.py`: grid sweeps that every returned trajectory
+  is valid, and the angle class.
+
 ## [1.3.1] - 2024-12-06
 
 ### Added

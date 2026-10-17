@@ -18,7 +18,23 @@ The testing system is based on YAML-driven test cases that provide comprehensive
 6. **integration_tests**: Utility function tests
 7. **boundary_tests**: Boundary condition tests
 8. **overspeed_tests**: Overspeed warning tests
-9. **error_tests**: Error condition tests
+9. **initial_velocity_away_tests**: Trajectories that start moving away from the target
+10. **end_velocity_tests**: End-velocity edge cases (ve away from the target, acceleration-only arrival)
+11. **error_tests**: Error condition tests
+
+### Property Tests
+
+`tests/test_trajectory_properties.py` holds what a table of cases cannot express:
+sweeps over grids of inputs (every returned trajectory ends at `(pe, ve)`, has
+non-negative phase durations and stays within its limits) and the
+`TwoAngleInterpolation` class, which the YAML runner does not cover. New concrete
+cases belong in `test_cases.yaml`.
+
+### End-State Check
+
+For every trajectory case the runner checks the state just before `te`, not only
+at `te`: `get_point()` returns exactly `(pe, ve)` from `te` on, so sampling there
+alone would not catch a trajectory that does not arrive at the target.
 
 ### Test Types
 
@@ -149,6 +165,11 @@ Test cases are defined in `tests/test_cases.yaml`. Each test case includes:
   notes: |
     Optional notes about the test case
 ```
+
+Optional `expected` keys besides `case` and `total_time` include `v1` (peak
+velocity at the end of the acceleration phase), `final_phase_duration`, and
+`p_min` / `p_max` (extreme positions along the trajectory, e.g. how far a body
+moving away from the target travels before turning back).
 
 ### Error Message Validation
 

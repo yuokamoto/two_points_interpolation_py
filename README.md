@@ -130,6 +130,7 @@ two_points_interpolation_py/
 │   ├── test_cases.yaml                   # Test case definitions
 │   ├── test_case_loader.py               # YAML parsing utilities
 │   ├── test_yaml_cases.py                # Test runner
+│   ├── test_trajectory_properties.py     # Property sweeps over input grids
 │   ├── generate_plots.py                 # Visualization tool
 │   └── plots/                            # Generated test plots
 └── docs/                                 # Documentation
