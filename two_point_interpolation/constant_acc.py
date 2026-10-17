@@ -150,16 +150,19 @@ class TwoPointInterpolation:
                 'cannot_stop_in_time' -- the body already moves toward the target
                     faster than it can slow down to ve within |dp|;
                 'end_velocity_unreachable' -- ve is faster, in the direction of
-                    travel, than any speed reachable within |dp|.
+                    travel, than any speed reachable within |dp| without first
+                    moving away from the target.
         """
         if context == 'end_velocity_unreachable':
             # Accelerating toward the target over the whole distance (after first
             # stopping, if v0 points away) ends at v^2 = v0^2 + 2 * acc_max * |dp|.
+            # That is the limit for this accelerate-then-decelerate profile only:
+            # backing away first to gain run-up distance would reach ve (#9).
             reachable = float(np.sqrt(v0**2 + 2 * self.amax_accel * abs(dp)))
             raise ValueError(
-                f"End velocity unreachable: the highest speed reachable within "
-                f"distance {abs(dp):.4f} from v0 {v0:.4f} is {reachable:.4f}, "
-                f"but ve {ve:.4f} was requested. "
+                f"End velocity unreachable without first moving away from the target: "
+                f"the highest speed reachable over distance {abs(dp):.4f} from v0 "
+                f"{v0:.4f} is {reachable:.4f}, but ve {ve:.4f} was requested. "
                 f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}"
             )
 
@@ -301,6 +304,8 @@ class TwoPointInterpolation:
         # Acceleration phase duration. Not positive when the body already moves toward
         # pe at least as fast as v1, i.e. it cannot slow down to ve within |dp|.
         dt01 = (v1 - v0) / acc
+        # TODO(#9): reverse profile (decelerate -> accelerate) for overshoot / back-up
+        # trajectories; both checks below would then have a trajectory to return.
         if dt01 <= 0:
             self._raise_deceleration_error(v0, ve, dp, dec, sign, 'cannot_stop_in_time')
         # The deceleration phase must slow v1 down to ve; if ve is faster than v1 in

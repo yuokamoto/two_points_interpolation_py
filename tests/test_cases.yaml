@@ -965,11 +965,12 @@ error_tests:
     expected:
       error: ValueError
       error_contains:
-        - "End velocity unreachable"
+        - "End velocity unreachable without first moving away from the target"
         - "is 0.4472, but ve 2.0000"
     notes: |
       Accelerating over the whole 0.1 m reaches only sqrt(2 * 1 * 0.1) = 0.447 m/s.
-      1.3.1 returned a trajectory that did not end at pe.
+      1.3.1 returned a trajectory that did not end at pe. Backing away first to gain
+      run-up distance would reach ve; that reverse profile is not built (#9).
 
   - name: test_end_velocity_unreachable_moving_away
     description: "ve unreachable when starting away from the target"

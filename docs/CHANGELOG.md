@@ -28,11 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Behaviour change**: inputs that used to return a wrong trajectory now raise
   `ValueError`. These are requests whose end velocity `ve` is faster, toward `pe`,
-  than any speed reachable within the distance; the trajectory returned for them
+  than any speed reachable within the distance without first moving away from `pe`;
+  the trajectory returned for them
   never ended at `pe`. Inputs that produced a correct trajectory are unaffected.
 - Error messages name the actual cause: "Insufficient distance ..." when the body
-  moves toward `pe` too fast to slow down to `ve`, and "End velocity unreachable ..."
-  with the highest reachable speed when `ve` cannot be reached. The old messages
+  moves toward `pe` too fast to slow down to `ve`, and "End velocity unreachable
+  without first moving away from the target ..." with the highest speed reachable
+  over the distance. A profile that backs away or overshoots is not built (#9). The old messages
   referring to a discriminant or to "no positive time solution" are gone, since the
   quadratic is no longer solved.
 

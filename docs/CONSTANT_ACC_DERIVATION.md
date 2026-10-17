@@ -77,9 +77,12 @@ t1 <= 0             -> the body already moves toward pe at least as fast as v1:
                        it cannot slow down to ve within |dp|
 sign*(v1 - ve) < 0  -> ve is faster, toward pe, than any speed reachable within
                        |dp| (that is sqrt(v0² + 2*amax*|dp|)): ve is unreachable
+                       without first moving away from pe
 ```
 
-Both raise `ValueError`.
+Both raise `ValueError`. Both are limits of this accelerate-then-decelerate
+profile only: the reverse order (decelerate, then accelerate) would pass `pe` and
+come back, or back away first to gain run-up distance. That is tracked in #9.
 
 ### Step 4: vmax
 
