@@ -163,6 +163,87 @@ def generate_case1_example(show=True, save=False):
         plt.close()
 
 
+def generate_moving_away_example(show=True, save=False):
+    """Generate an example whose initial velocity points away from the target"""
+    print("\n=== Initial velocity away from the target ===")
+
+    tpi = TwoPointInterpolation()
+
+    # Moving at -3 m/s while the target is 10 m ahead in the positive direction
+    t0 = 0.0
+    p0, pe = 0.0, 10.0
+    v0, ve = -3.0, 0.0
+
+    # Constraints
+    acc_max = 2.0
+    dec_max = 3.0
+    vmax = 5.0
+
+    tpi.init(p0, pe, acc_max, vmax, t0=t0, v0=v0, ve=ve, dec_max=dec_max)
+    total_time = tpi.calc_trajectory()
+
+    print(f"Duration: {total_time:.3f} s")
+    print(f"Case: {tpi.case}")
+
+    # Sample trajectory
+    dt = 0.01
+    t_array = np.arange(t0, tpi.get_end_time(), dt)
+    p_array = []
+    v_array = []
+    a_array = []
+
+    for t in t_array:
+        p, v, a = tpi.get_point(t)
+        p_array.append(p)
+        v_array.append(v)
+        a_array.append(a)
+
+    # Where the body stops moving away and turns back
+    t_turn = t0 - v0 / acc_max
+    p_turn, _, _ = tpi.get_point(t_turn)
+
+    # Plot
+    fig, axes = plt.subplots(3, 1, figsize=(10, 8))
+
+    axes[0].plot(t_array, p_array, 'b-', linewidth=2)
+    axes[0].set_ylabel('Position [m]')
+    axes[0].grid(True)
+    axes[0].axhline(y=pe, color='r', linestyle='--', alpha=0.5, label='Target')
+    axes[0].axhline(y=p0, color='gray', linestyle=':', alpha=0.7, label='Start')
+    axes[0].plot([t_turn], [p_turn], 'ko', label='Turns back')
+    axes[0].legend()
+
+    axes[1].plot(t_array, v_array, 'g-', linewidth=2)
+    axes[1].set_ylabel('Velocity [m/s]')
+    axes[1].grid(True)
+    axes[1].axhline(y=vmax, color='r', linestyle='--', alpha=0.5, label='vmax')
+    axes[1].axhline(y=0.0, color='gray', linestyle=':', alpha=0.7)
+    axes[1].legend()
+
+    axes[2].plot(t_array, a_array, 'r-', linewidth=2)
+    axes[2].set_ylabel('Acceleration [m/s²]')
+    axes[2].set_xlabel('Time [s]')
+    axes[2].grid(True)
+    axes[2].axhline(y=acc_max, color='orange', linestyle='--', alpha=0.5, label=f'acc_max={acc_max}')
+    axes[2].axhline(y=-dec_max, color='purple', linestyle='--', alpha=0.5, label=f'-dec_max={-dec_max}')
+    axes[2].legend()
+
+    plt.suptitle(f'Initial velocity away from the target (v0={v0}, acc={acc_max}, dec={dec_max})')
+    plt.tight_layout()
+
+    if save:
+        images_dir = os.path.join(os.path.dirname(__file__), 'images')
+        os.makedirs(images_dir, exist_ok=True)
+        output_path = os.path.join(images_dir, 'acc_constant_2.png')
+        plt.savefig(output_path, dpi=150)
+        print(f"Saved: {output_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Two-point interpolation examples')
     parser.add_argument('--no-show', action='store_true', help='Do not display plots')
@@ -174,6 +255,7 @@ if __name__ == '__main__':
 
     generate_case0_example(show=show, save=save)
     generate_case1_example(show=show, save=save)
+    generate_moving_away_example(show=show, save=save)
 
     if save:
         print("\nPlots saved to images/ directory")

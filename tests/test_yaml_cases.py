@@ -16,6 +16,14 @@ import numpy as np
 from two_point_interpolation import TwoPointInterpolation, v_integ, p_integ
 from test_case_loader import load_test_cases
 
+# get_point() returns exactly (pe, ve) from te on, so the end state is sampled
+# this long before te: a trajectory that does not arrive at the target shows up
+# there instead of being hidden by the clamp.
+END_SAMPLE_EPS = 1e-9
+END_STATE_TOLERANCE = 1e-6
+# Samples used to find a trajectory's extreme positions (p_min / p_max).
+EXTREMA_SAMPLES = 40001
+
 EXCEPTION_MAP = {
     'ValueError': ValueError,
     'TypeError': TypeError,
@@ -252,16 +260,43 @@ class YAMLBasedTestRunner(unittest.TestCase):
             # Check intermediate position (p[1], not p[0] which is initial)
             self.assertAlmostEqual(expected['p1'], tpi.p[1], places=3)
 
+        if 'v1' in expected:
+            # Peak velocity at the end of the acceleration phase; its sign shows
+            # whether that phase ended moving toward the target.
+            self.assertAlmostEqual(expected['v1'], tpi.v[1], places=6, msg=f"Wrong peak velocity in {name}")
+
+        if 'final_phase_duration' in expected:
+            self.assertAlmostEqual(expected['final_phase_duration'], tpi.dt[-1], places=6,
+                                   msg=f"Wrong final phase duration in {name}")
+
+        if 'p_min' in expected or 'p_max' in expected:
+            positions = [tpi.get_point(t)[0]
+                         for t in np.linspace(tpi.t0, tpi.get_end_time(), EXTREMA_SAMPLES)]
+            if 'p_min' in expected:
+                self.assertAlmostEqual(expected['p_min'], min(positions), places=3,
+                                       msg=f"Wrong lowest position in {name}")
+            if 'p_max' in expected:
+                self.assertAlmostEqual(expected['p_max'], max(positions), places=3,
+                                       msg=f"Wrong highest position in {name}")
+
         # Always check initial state (like original test_get_point_boundary_conditions)
         p_initial, v_initial, a_initial = tpi.get_point(0.0)
         self.assertAlmostEqual(tpi.p0, p_initial, places=5, msg=f"Initial position mismatch in {name}")
         self.assertAlmostEqual(tpi.v0, v_initial, places=5, msg=f"Initial velocity mismatch in {name}")
 
         # Always verify final state matches target (physical requirement)
-        p_final, v_final, a_final = tpi.get_point(total_time)
+        p_final, v_final, a_final = tpi.get_point(tpi.get_end_time())
         self.assertAlmostEqual(tpi.pe, p_final, places=3, msg=f"Did not reach target position in {name}")
         self.assertAlmostEqual(tpi.ve, v_final, places=3, msg=f"Did not reach target velocity in {name}")
         self.assertAlmostEqual(0.0, a_final, places=5, msg=f"Final acceleration should be zero in {name}")
+
+        # ...and that the trajectory itself arrives there, not only the clamp at te.
+        if total_time > 0:
+            p_end, v_end, _ = tpi.get_point(tpi.get_end_time() - END_SAMPLE_EPS)
+            self.assertAlmostEqual(tpi.pe, p_end, delta=END_STATE_TOLERANCE,
+                                   msg=f"Trajectory does not arrive at the target position in {name}")
+            self.assertAlmostEqual(tpi.ve, v_end, delta=END_STATE_TOLERANCE,
+                                   msg=f"Trajectory does not arrive at the target velocity in {name}")
 
     def _verify_boundary_continuity(self, test_case, tpi, total_time):
         """Verify boundary continuity at all phase transitions."""
@@ -417,6 +452,16 @@ class YAMLBasedTestRunner(unittest.TestCase):
     def test_overspeed_conditions(self):
         """Test overspeed condition scenarios."""
         for test_case in self.test_cases.get('overspeed_tests', []):
+            self.run_single_test_case(test_case)
+
+    def test_initial_velocity_away(self):
+        """Test trajectories that start moving away from the target."""
+        for test_case in self.test_cases.get('initial_velocity_away_tests', []):
+            self.run_single_test_case(test_case)
+
+    def test_end_velocity_conditions(self):
+        """Test end-velocity edge cases."""
+        for test_case in self.test_cases.get('end_velocity_tests', []):
             self.run_single_test_case(test_case)
 
     def test_error_conditions(self):

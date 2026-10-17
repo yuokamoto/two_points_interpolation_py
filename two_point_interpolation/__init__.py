@@ -17,7 +17,7 @@
 This library provides trajectory generation with constant acceleration and constant jerk.
 """
 
-__version__ = "1.3.1"
+__version__ = "1.3.2"
 
 # Constant acceleration interpolation
 from .constant_acc import TwoPointInterpolation as TwoPointInterpolationAcc

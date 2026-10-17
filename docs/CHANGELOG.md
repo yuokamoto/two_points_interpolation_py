@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - Unreleased
+
+### Fixed
+- **Initial velocity away from the target**: `calc_trajectory()` could return a
+  trajectory that never reaches `pe` when `v0` points away from it.
+  - The acceleration time was taken as the smaller positive root of a quadratic whose
+    two roots correspond to a peak velocity `v1` of `+|v1|` and `-|v1|`. When `v0`
+    points away from `pe` over a short enough distance (`(v0² - ve²)/(2*dmax) > |dp|`),
+    both roots are positive, and the smaller one is always the `-|v1|` root, since
+    `t1 = (v1 - v0)/acc` grows with `v1` along the direction of travel: the
+    acceleration phase ends still moving away, and the deceleration phase drives
+    further away. `get_point()` clamps to `pe` at `te`, so the result only showed as
+    a jump at the end.
+  - `v1` is now computed directly from the distance equation and takes its sign from
+    the direction of travel. Results are unchanged wherever the old root was correct.
+  - An acceleration-only arrival (`ve` exactly the speed reached by accelerating
+    over the whole distance) is accepted despite square-root rounding: a peak within
+    a relative `1e-9` of `ve` is snapped onto it, so the deceleration phase has zero
+    length. The snap applies only when accelerating from `v0` to `ve` covers `|dp|`
+    (also within a relative `1e-9`): a peak close to `ve` alone, e.g. with a tiny
+    `dec_max`, is not an acceleration-only arrival and `ve` stays unreachable.
+
+### Changed
+- **Behaviour change**: inputs that used to return a wrong trajectory now raise
+  `ValueError`. These are requests whose end velocity `ve` is faster, toward `pe`,
+  than any speed reachable within the distance without first moving away from `pe`;
+  the trajectory returned for them never ended at `pe`. Inputs that produced a
+  correct trajectory are unaffected.
+- Error messages name the actual cause: "Insufficient distance ..." when the body
+  moves toward `pe` too fast to slow down to `ve`, and "End velocity unreachable
+  without first moving away from the target ..." with the highest speed reachable
+  over the distance. A profile that backs away or overshoots is not built (#9).
+  The old messages referring to a discriminant or to "no positive time solution"
+  are gone, since the quadratic is no longer solved.
+
+### Docs
+- `CONSTANT_ACC_DERIVATION.md` derives the peak velocity directly and explains why
+  the former quadratic in the acceleration time produced a spurious root.
+  `QUADRATIC_COEFFICIENTS_DERIVATION.md`, which derived that quadratic, is removed.
+- README: a third example plot, an initial velocity away from the target, generated
+  by `examples/example_constant_acc.py --save` as `examples/images/acc_constant_2.png`.
+
+### Tests
+- New YAML groups `initial_velocity_away_tests` (v0 away from the target inside the
+  regime where the old quadratic had two positive roots, both directions, case 0 and
+  case 1) and `end_velocity_tests` (ve away from the target, acceleration-only
+  arrivals), plus two unreachable-`ve` error cases.
+- The YAML runner now checks the state just before `te` for every trajectory case;
+  `get_point()` clamps to `(pe, ve)` at `te`, which hid trajectories that did not
+  arrive there. New optional expected keys: `v1`, `final_phase_duration`, `p_min`,
+  `p_max`.
+- `tests/test_trajectory_properties.py`: grid sweeps that every returned trajectory
+  is valid, and the angle class.
+
 ## [1.3.1] - 2024-12-06
 
 ### Added
