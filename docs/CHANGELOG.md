@@ -18,8 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     only showed as a jump at the end.
   - `v1` is now computed directly from the distance equation and takes its sign from
     the direction of travel. Results are unchanged wherever the old root was correct.
-  - Requests whose end velocity `ve` cannot be reached within the distance now raise
-    `ValueError` instead of returning a trajectory that misses `pe`.
+
+### Changed
+- **Behaviour change**: inputs that used to return a wrong trajectory now raise
+  `ValueError`. These are requests whose end velocity `ve` is faster, toward `pe`,
+  than any speed reachable within the distance; the trajectory returned for them
+  never ended at `pe`. Inputs that produced a correct trajectory are unaffected.
+- Error messages name the actual cause: "Insufficient distance ..." when the body
+  moves toward `pe` too fast to slow down to `ve`, and "End velocity unreachable ..."
+  with the highest reachable speed when `ve` cannot be reached. The old messages
+  referring to a discriminant or to "no positive time solution" are gone, since the
+  quadratic is no longer solved.
+
+### Docs
+- `CONSTANT_ACC_DERIVATION.md` derives the peak velocity directly and explains why
+  the former quadratic in the acceleration time produced a spurious root.
+  `QUADRATIC_COEFFICIENTS_DERIVATION.md`, which derived that quadratic, is removed.
 
 ## [1.3.1] - 2024-12-06
 

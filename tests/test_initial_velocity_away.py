@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 import pytest
 
-from two_point_interpolation import TwoPointInterpolation
+from two_point_interpolation import TwoAngleInterpolation, TwoPointInterpolation
 
 EPS = 1e-9
 
@@ -91,7 +91,7 @@ def test_the_reported_case():
 
 
 def test_toward_the_target_without_room_to_stop_still_raises():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Insufficient distance to decelerate"):
         _build(0.0, 1.0, 3.0, 1.0, 1.0, 5.0)
 
 
@@ -104,8 +104,10 @@ def test_toward_the_target_without_room_to_stop_still_raises():
 )
 def test_an_end_velocity_out_of_reach_raises(dp, v0, acc, dec, vmax, ve):
     """1.3.1 returned a trajectory that missed pe for these."""
-    with pytest.raises(ValueError):
+    reachable = np.sqrt(v0**2 + 2 * acc * dp)  # accelerate over the whole distance
+    with pytest.raises(ValueError, match="End velocity unreachable") as raised:
         _build(0.0, dp, v0, acc, dec, vmax, ve)
+    assert "is {:.4f}, but ve {:.4f}".format(reachable, ve) in str(raised.value)
 
 
 GRID = list(
@@ -119,10 +121,29 @@ GRID = list(
     )
 )
 
+# The end velocity may also point away from the target: the body passes pe,
+# turns around in the deceleration phase and arrives back at pe moving away.
+GRID_VE_SIGNED = [row + (ve_sign,) for row in GRID if row[5] > 0 for ve_sign in (1.0, -1.0)]
+
 
 @pytest.mark.parametrize("v0, dp, acc, dec, vmax, ve_mag", GRID)
 def test_every_returned_trajectory_is_valid(v0, dp, acc, dec, vmax, ve_mag):
-    ve = ve_mag * np.sign(dp)
+    _check_returned_trajectory(v0, dp, acc, dec, vmax, ve_mag * np.sign(dp))
+
+
+@pytest.mark.parametrize("v0, dp, acc, dec, vmax, ve_mag, ve_sign", GRID_VE_SIGNED)
+def test_every_returned_trajectory_is_valid_for_either_end_direction(v0, dp, acc, dec, vmax, ve_mag, ve_sign):
+    _check_returned_trajectory(v0, dp, acc, dec, vmax, ve_sign * ve_mag * np.sign(dp))
+
+
+def test_an_end_velocity_away_from_the_target_overshoots_and_returns():
+    tpi = _build(0.0, 1.0, 0.0, 1.0, 1.0, 3.0, ve=-0.5)
+    highest = max(tpi.get_point(t)[0] for t in np.linspace(0.0, tpi.get_end_time(), 400))
+    assert highest > 1.0  # it passes pe before coming back
+    _assert_reaches_target(tpi, 1.0, -0.5)
+
+
+def _check_returned_trajectory(v0, dp, acc, dec, vmax, ve):
     try:
         tpi = _build(0.0, dp, v0, acc, dec, vmax, ve)
     except ValueError:
@@ -153,3 +174,17 @@ def test_cases_1_3_1_got_right_are_unchanged(v0, dp, acc, dec, vmax, ve_mag):
         assert tpi.dt[0] == pytest.approx(old, rel=1e-9, abs=1e-12)
     else:
         assert tpi.v[1] == pytest.approx(vmax * np.sign(dp))
+
+
+def test_an_angle_turning_away_from_its_target_still_reaches_it():
+    """The angle class goes through the same solver: an angular velocity away
+    from the shortest rotation to the target must still end at the target."""
+    tpi = TwoAngleInterpolation()
+    # 350 deg to 10 deg is +20 deg the short way; start turning at -1 rad/s.
+    pe = np.deg2rad(10.0)
+    tpi.init(p0=np.deg2rad(350.0), pe=pe, acc_max=1.0, vmax=3.0, v0=-1.0, dec_max=1.0)
+    tpi.calc_trajectory()
+    assert tpi.v[1] > 0  # the peak is toward the target
+    p, v, _ = tpi.get_point(tpi.get_end_time() - EPS)
+    assert p == pytest.approx(pe, abs=1e-6)
+    assert v == pytest.approx(0.0, abs=1e-6)

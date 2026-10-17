@@ -133,7 +133,7 @@ class TwoPointInterpolation:
 
     def _raise_deceleration_error(self, v0: float, ve: float, dp: float,
                                   dec: float, sign: float, context: str) -> None:
-        """Check deceleration feasibility and raise appropriate error.
+        """Raise the error for an infeasible trajectory.
 
         Args:
             v0: initial velocity
@@ -141,10 +141,25 @@ class TwoPointInterpolation:
             dp: position displacement
             dec: deceleration value (with sign)
             sign: direction sign
-            context: error context ('discriminant' or 'no_positive_solution')
+            context: why no trajectory exists:
+                'cannot_stop_in_time' -- the body already moves toward the target
+                    faster than it can slow down to ve within |dp|;
+                'end_velocity_unreachable' -- ve is faster, in the direction of
+                    travel, than any speed reachable within |dp|.
         """
-        # Calculate minimum distance required to decelerate from v0 to ve
-        # Using kinematic equation: d = (v0² - ve²) / (2 * dec)
+        if context == 'end_velocity_unreachable':
+            # Accelerating toward the target over the whole distance (after first
+            # stopping, if v0 points away) ends at v^2 = v0^2 + 2 * acc_max * |dp|.
+            reachable = float(np.sqrt(v0**2 + 2 * self.amax_accel * abs(dp)))
+            raise ValueError(
+                f"End velocity unreachable: the highest speed reachable within "
+                f"distance {abs(dp):.4f} from v0 {v0:.4f} is {reachable:.4f}, "
+                f"but ve {ve:.4f} was requested. "
+                f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}"
+            )
+
+        # context == 'cannot_stop_in_time'
+        # Minimum distance needed to slow from v0 to ve: d = (v0^2 - ve^2) / (2 * dec)
         decel_distance = (v0**2 - ve**2) / (2 * abs(dec))
 
         # Check if moving toward target (sign * v0 > 0 means velocity and direction align)
@@ -153,13 +168,8 @@ class TwoPointInterpolation:
         if (is_moving_toward_target and
                 abs(decel_distance - abs(dp)) < abs(dp) * DECEL_DISTANCE_TOLERANCE):
             # Within tolerance: deceleration distance is very close to available distance
-            if context == 'discriminant':
-                msg_prefix = "No valid trajectory found"
-            else:  # no_positive_solution
-                msg_prefix = "Insufficient distance for trajectory planning"
-
             raise ValueError(
-                f"{msg_prefix}: "
+                f"Insufficient distance for trajectory planning: "
                 f"current velocity {abs(v0):.4f} requires approximately "
                 f"{decel_distance:.4f} distance to reach target velocity {abs(ve):.4f}, "
                 f"nearly equal to available distance {abs(dp):.4f}. "
@@ -167,7 +177,7 @@ class TwoPointInterpolation:
                 f"This typically occurs when the same goal is sent again during motion. "
                 f"Consider checking if the goal has changed before recalculating trajectory."
             )
-        elif is_moving_toward_target and decel_distance > abs(dp):
+        if is_moving_toward_target and decel_distance > abs(dp):
             # Deceleration distance exceeds available distance (more than tolerance)
             # Guard against division by zero (though dp==0 is checked earlier in calc_trajectory)
             percentage = (abs(decel_distance - abs(dp))/abs(dp)*100) if abs(dp) > 1e-10 else 0.0
@@ -179,22 +189,13 @@ class TwoPointInterpolation:
                 f"({percentage:.2f}%). "
                 f"Consider reducing initial velocity or increasing distance."
             )
-        else:
-            # General case
-            if context == 'discriminant':
-                raise ValueError(
-                    f"No valid trajectory found (discriminant <= 0). "
-                    f"The constraints might be too restrictive for the given end conditions. "
-                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
-                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}, "
-                    f"vmax: {self.vmax:.4f}"
-                )
-            else:  # no_positive_solution
-                raise ValueError(
-                    f"No positive time solution found for trajectory. "
-                    f"Distance: {abs(dp):.4f}, v0: {abs(v0):.4f}, ve: {abs(ve):.4f}, "
-                    f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}"
-                )
+        # Boundary: the body arrives exactly at the deceleration distance (no time
+        # left to accelerate). Not reachable with a positive acceleration phase.
+        raise ValueError(
+            f"Insufficient distance for trajectory planning: no time is left for the "
+            f"acceleration phase. Distance: {abs(dp):.4f}, v0: {v0:.4f}, ve: {ve:.4f}, "
+            f"acc_max: {self.amax_accel:.4f}, dec_max: {self.amax_decel:.4f}"
+        )
 
     def init(self, p0: float, pe: float, acc_max: float, vmax: float,
              t0: float = 0, v0: float = 0, ve: float = 0, dec_max: Optional[float] = None) -> None:
@@ -277,15 +278,15 @@ class TwoPointInterpolation:
             1 / (2 * a_mag) + 1 / (2 * d_mag))
         v1 = sign * np.sqrt(v1_sq)
 
-        # Acceleration phase duration. Negative when the body already moves toward pe
-        # faster than v1, i.e. it cannot slow down to ve within |dp|.
+        # Acceleration phase duration. Not positive when the body already moves toward
+        # pe at least as fast as v1, i.e. it cannot slow down to ve within |dp|.
         dt01 = (v1 - v0) / acc
         if dt01 <= 0:
-            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'no_positive_solution')
+            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'cannot_stop_in_time')
         # The deceleration phase must slow v1 down to ve; if ve is faster than v1 in
         # the direction of travel, ve cannot be reached within |dp|.
         if sign * (v1 - ve) < 0:
-            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'discriminant')
+            self._raise_deceleration_error(v0, ve, dp, dec, sign, 'end_velocity_unreachable')
 
         if np.fabs(v1) < vmax:
             # Case 0: vmax not reached

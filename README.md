@@ -134,7 +134,6 @@ two_points_interpolation_py/
 │   └── plots/                            # Generated test plots
 └── docs/                                 # Documentation
     ├── CONSTANT_ACC_DERIVATION.md        # Mathematical details
-    ├── QUADRATIC_COEFFICIENTS_DERIVATION.md  # Quadratic solution derivation
     ├── edge_cases_analysis.md             # Edge cases and overspeed analysis
     └── CHANGELOG.md                      # Version history
 ```
@@ -160,7 +159,6 @@ Trajectory when vmax is reached. Shows three phases: acceleration, constant velo
 - **Getting Started**: This README
 - **Testing Guide**: [tests/README.md](tests/README.md) - Comprehensive testing documentation
 - **Mathematical Derivation**: [docs/CONSTANT_ACC_DERIVATION.md](docs/CONSTANT_ACC_DERIVATION.md)
-- **Detailed Coefficient Derivation**: [docs/QUADRATIC_COEFFICIENTS_DERIVATION.md](docs/QUADRATIC_COEFFICIENTS_DERIVATION.md)
 - **Edge Cases Analysis**: [docs/edge_cases_analysis.md](docs/edge_cases_analysis.md)
 - **Change History**: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 

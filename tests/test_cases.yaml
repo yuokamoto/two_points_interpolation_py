@@ -678,8 +678,8 @@ error_tests:
       Available distance = 0.5m
       Shortage = (2.0 - 0.5) / 2.0 = 75% > 2%
 
-  - name: test_general_constraint_error_discriminant
-    description: "General constraint error when discriminant <= 0"
+  - name: test_general_constraint_error_overspeed_end
+    description: "Start and end above vmax over too short a distance"
     test_type: error
     params:
       p0: 0.0
@@ -697,9 +697,9 @@ error_tests:
         - "constraints"
     notes: |
       Start above vmax and need to end above vmax, but distance is too short.
-      This creates an impossible trajectory with discriminant <= 0.
+      This creates an impossible trajectory (vmax cannot be honoured).
 
-  - name: test_general_constraint_error_no_positive_solution
+  - name: test_general_constraint_error_cannot_stop_in_time
     description: "Error when trajectory calculation fails"
     test_type: error
     params:
